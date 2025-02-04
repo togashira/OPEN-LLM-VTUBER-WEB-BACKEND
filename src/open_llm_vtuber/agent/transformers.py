@@ -105,7 +105,6 @@ def display_processor():
 
 def tts_filter(
     tts_preprocessor_config: TTSPreprocessorConfig = None,
-    translator: TranslateInterface | None = None,
 ):
     """
     Decorator that filters text for TTS.
@@ -132,7 +131,6 @@ def tts_filter(
                         ignore_parentheses=config.ignore_parentheses,
                         ignore_asterisks=config.ignore_asterisks,
                         ignore_angle_brackets=config.ignore_angle_brackets,
-                        translator=translator,
                     )
 
                 logger.debug(f"display: {display}")
