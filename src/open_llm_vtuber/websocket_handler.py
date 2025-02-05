@@ -17,14 +17,17 @@ from .message_handler import message_handler
 from .utils.stream_audio import prepare_audio_payload
 from .chat_history_manager import (
     create_new_history,
-    store_message,
-    modify_latest_message,
     get_history,
     delete_history,
     get_history_list,
 )
 from .config_manager.utils import scan_config_alts_directory, scan_bg_directory
-from .conversations.conversation_handler import handle_conversation_trigger, handle_group_interrupt
+from .conversations.conversation_handler import (
+    handle_conversation_trigger,
+    handle_group_interrupt,
+    handle_individual_interrupt,
+)
+
 
 class MessageType(Enum):
     """Enum for WebSocket message types"""
@@ -52,6 +55,7 @@ class WSMessage(TypedDict, total=False):
     history_uid: Optional[str]
     file: Optional[str]
     display_text: Optional[dict]
+
 
 class WebSocketHandler:
     """Handles WebSocket connections and message routing"""
@@ -343,30 +347,12 @@ class WebSocketHandler:
                 broadcast_to_group=self.broadcast_to_group,
             )
         else:
-            if client_uid in self.current_conversation_tasks:
-                task = self.current_conversation_tasks[client_uid]
-                if task and not task.done():
-                    task.cancel()
-                    logger.info("🛑 Conversation task was successfully interrupted")
-
-            try:
-                context.agent_engine.handle_interrupt(heard_response)
-            except Exception as e:
-                logger.error(f"Error handling interrupt: {e}")
-
-            if context.history_uid:
-                store_message(
-                    conf_uid=context.character_config.conf_uid,
-                    history_uid=context.history_uid,
-                    role="ai",
-                    content=heard_response,
-                )
-                store_message(
-                    conf_uid=context.character_config.conf_uid,
-                    history_uid=context.history_uid,
-                    role="system",
-                    content="[Interrupted by user]",
-                )
+            await handle_individual_interrupt(
+                client_uid=client_uid,
+                current_conversation_tasks=self.current_conversation_tasks,
+                context=context,
+                heard_response=heard_response,
+            )
 
     async def _handle_history_list_request(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
@@ -473,13 +459,13 @@ class WebSocketHandler:
             client_uid=client_uid,
             context=self.client_contexts[client_uid],
             websocket=websocket,
-                    client_contexts=self.client_contexts,
-                    client_connections=self.client_connections,
+            client_contexts=self.client_contexts,
+            client_connections=self.client_connections,
             chat_group_manager=self.chat_group_manager,
             received_data_buffers=self.received_data_buffers,
             current_conversation_tasks=self.current_conversation_tasks,
             broadcast_to_group=self.broadcast_to_group,
-            )
+        )
 
     async def _handle_fetch_configs(
         self, websocket: WebSocket, client_uid: str, data: WSMessage

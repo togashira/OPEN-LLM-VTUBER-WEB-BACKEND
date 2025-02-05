@@ -51,8 +51,13 @@ async def process_group_conversation(
     try:
         logger.info(f"Group Conversation Chain {session_emoji} started!")
 
-        # Initialize group state
-        state = init_group_conversation_state(group_members, session_emoji)
+        # Initialize state with group_id
+        state = GroupConversationState(
+            group_id=f"group_{initiator_client_uid}",  # Use same format as chat_group
+            session_emoji=session_emoji,
+            group_queue=list(group_members),
+            memory_index={uid: 0 for uid in group_members}  # Initialize memory index for each member
+        )
         
         # Initialize group conversation context for each AI
         init_group_conversation_contexts(client_contexts)
@@ -122,6 +127,8 @@ async def process_group_conversation(
         # Cleanup all TTS managers
         for uid, tts_manager in tts_managers.items():
             cleanup_conversation(tts_manager, session_emoji)
+        # Clean up
+        GroupConversationState.remove_state(state.group_id)
 
 def init_group_conversation_state(
     group_members: List[str], session_emoji: str
@@ -200,6 +207,9 @@ async def handle_group_member_turn(
     tts_manager: TTSTaskManager,
 ) -> None:
     """Handle a single group member's conversation turn"""
+    # Update current speaker before processing
+    state.current_speaker_uid = current_member_uid
+    
     await broadcast_thinking_state(broadcast_func, group_members)
 
     context = client_contexts[current_member_uid]
@@ -223,9 +233,6 @@ async def handle_group_member_turn(
         context=context,
         batch_input=batch_input,
         current_ws_send=current_ws_send,
-        current_member_uid=current_member_uid,
-        broadcast_func=broadcast_func,
-        group_members=group_members,
         tts_manager=tts_manager,
     )
 
@@ -265,6 +272,9 @@ async def handle_group_member_turn(
     state.memory_index[current_member_uid] = len(state.conversation_history)
     state.group_queue.append(current_member_uid)
 
+    # Clear speaker after turn completes
+    state.current_speaker_uid = None
+
 async def broadcast_thinking_state(
     broadcast_func: BroadcastFunc, group_members: List[str]
 ) -> None:
@@ -296,9 +306,6 @@ async def process_member_response(
     context: ServiceContext,
     batch_input: Any,
     current_ws_send: WebSocketSend,
-    current_member_uid: str,
-    broadcast_func: BroadcastFunc,
-    group_members: List[str],
     tts_manager: TTSTaskManager,
 ) -> str:
     """Process group member's response"""

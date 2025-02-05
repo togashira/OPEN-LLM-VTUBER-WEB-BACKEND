@@ -1,5 +1,5 @@
-from typing import List, Dict, Callable, Optional, TypedDict, Awaitable
-from dataclasses import dataclass
+from typing import List, Dict, Callable, Optional, TypedDict, Awaitable, ClassVar
+from dataclasses import dataclass, field
 from pydantic import BaseModel
 
 from ..agent.output_types import Actions, DisplayText
@@ -39,10 +39,29 @@ class ConversationConfig(BaseModel):
     character_name: str = "AI"
 
 
-class GroupConversationState(BaseModel):
+@dataclass
+class GroupConversationState:
     """State for group conversation"""
-
-    conversation_history: List[str] = []
-    memory_index: Dict[str, int] = {}
-    group_queue: List[str] = []
+    # Class variable to track current states
+    _states: ClassVar[Dict[str, 'GroupConversationState']] = {}
+    
+    group_id: str
+    conversation_history: List[str] = field(default_factory=list)
+    memory_index: Dict[str, int] = field(default_factory=dict)
+    group_queue: List[str] = field(default_factory=list)
     session_emoji: str = ""
+    current_speaker_uid: Optional[str] = None
+
+    def __post_init__(self):
+        """Register state instance after initialization"""
+        GroupConversationState._states[self.group_id] = self
+
+    @classmethod
+    def get_state(cls, group_id: str) -> Optional['GroupConversationState']:
+        """Get conversation state by group_id"""
+        return cls._states.get(group_id)
+
+    @classmethod
+    def remove_state(cls, group_id: str) -> None:
+        """Remove conversation state when done"""
+        cls._states.pop(group_id, None)
