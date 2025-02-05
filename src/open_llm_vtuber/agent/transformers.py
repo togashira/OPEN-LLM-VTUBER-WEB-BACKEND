@@ -6,7 +6,6 @@ from ..live2d_model import Live2dModel
 from ..config_manager import TTSPreprocessorConfig
 from ..utils.sentence_divider import SentenceDivider
 from ..utils.sentence_divider import SentenceWithTags, TagState
-from ..utils.tts_preprocessor import tts_filter as filter_text
 from loguru import logger
 
 
