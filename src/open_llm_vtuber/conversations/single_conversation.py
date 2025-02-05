@@ -4,156 +4,156 @@ import json
 from loguru import logger
 import numpy as np
 
-from .base import BaseConversation
+from .utils import (
+    create_batch_input,
+    process_agent_output,
+    send_conversation_start_signals,
+    process_user_input,
+    finalize_conversation_turn,
+    cleanup_conversation,
+    EMOJI_LIST,
+)
 from .types import WebSocketSend
+from .tts_manager import TTSTaskManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
-from ..agent.input_types import BatchInput
 
+async def process_single_conversation(
+    context: ServiceContext,
+    websocket_send: WebSocketSend,
+    client_uid: str,
+    user_input: Union[str, np.ndarray],
+    images: Optional[List[Dict[str, Any]]] = None,
+    session_emoji: str = np.random.choice(EMOJI_LIST),
+) -> str:
+    """Process a single-user conversation turn
 
-class SingleConversation(BaseConversation):
-    """Handles single-user conversation"""
+    Args:
+        context: Service context containing all configurations and engines
+        websocket_send: WebSocket send function
+        client_uid: Client unique identifier
+        user_input: Text or audio input from user
+        images: Optional list of image data
+        session_emoji: Emoji identifier for the conversation
 
-    def __init__(
-        self,
-        context: ServiceContext,
-        websocket_send: WebSocketSend,
-        client_uid: str = "",
-    ) -> None:
-        """Initialize conversation handler
+    Returns:
+        str: Complete response text
+    """
+    # Create TTSTaskManager for this conversation
+    tts_manager = TTSTaskManager()
+    
+    try:
+        # Send initial signals
+        await send_conversation_start_signals(websocket_send)
+        logger.info(f"New Conversation Chain {session_emoji} started!")
 
-        Args:
-            context: Service context containing all configurations and engines
-            websocket_send: WebSocket send function
-            client_uid: Client unique identifier
-        """
-        super().__init__()
-        self.context = context
-        self.agent_engine = context.agent_engine
-        self.live2d_model = context.live2d_model
-        self.asr_engine = context.asr_engine
-        self.tts_engine = context.tts_engine
-        self.websocket_send = websocket_send
-        self.client_uid = client_uid
+        # Process user input
+        input_text = await process_user_input(
+            user_input, context.asr_engine, websocket_send
+        )
 
-    async def process_conversation(
-        self,
-        user_input: Union[str, np.ndarray],
-        images: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        """Process a conversation turn
+        # Create batch input
+        batch_input = create_batch_input(
+            input_text=input_text,
+            images=images,
+            from_name=context.character_config.human_name,
+        )
 
-        Args:
-            user_input: Text or audio input from user
-            images: Optional list of image data
-
-        Returns:
-            str: Complete response text
-        """
-        try:
-            # Send initial signals
-            await self._send_conversation_start_signals(self.websocket_send)
-            logger.info(f"New Conversation Chain {self.session_emoji} started!")
-
-            # Process user input
-            input_text = await self._process_user_input(
-                user_input, self.asr_engine, self.websocket_send
+        # Store user message
+        if context.history_uid:
+            store_message(
+                conf_uid=context.character_config.conf_uid,
+                history_uid=context.history_uid,
+                role="human",
+                content=input_text,
+                name=context.character_config.human_name,
             )
+        logger.info(f"User input: {input_text}")
+        if images:
+            logger.info(f"With {len(images)} images")
 
-            # Create batch input
-            batch_input = self._create_batch_input(
-                input_text=input_text,
-                images=images,
-                from_name=self.context.character_config.human_name,
+        # Process agent response
+        full_response = await process_agent_response(
+            context=context,
+            batch_input=batch_input,
+            websocket_send=websocket_send,
+            tts_manager=tts_manager,
+        )
+        
+        # Store conversation history if enabled
+        if context.history_uid and full_response:
+            store_message(
+                conf_uid=context.character_config.conf_uid,
+                history_uid=context.history_uid,
+                role="ai",
+                content=full_response,
+                name=context.character_config.character_name,
+                avatar=context.character_config.avatar,
             )
+            logger.info(f"AI response: {full_response}")
 
-            # Store user message
-            if self.context.history_uid:
-                store_message(
-                    conf_uid=self.context.character_config.conf_uid,
-                    history_uid=self.context.history_uid,
-                    role="human",
-                    content=input_text,
-                    name=self.context.character_config.human_name,
-                )
-            logger.info(f"User input: {input_text}")
-            if images:
-                logger.info(f"With {len(images)} images")
+        # Wait for any pending TTS tasks
+        if tts_manager.task_list:
+            await asyncio.gather(*tts_manager.task_list)
+            await websocket_send(json.dumps({"type": "backend-synth-complete"}))
 
-            # Process agent response and handle direct audio output if applicable
-            full_response = await self._process_agent_response(batch_input)
-            
-            # Store conversation history if enabled
-            if self.context.history_uid and full_response:
-                store_message(
-                    conf_uid=self.context.character_config.conf_uid,
-                    history_uid=self.context.history_uid,
-                    role="ai",
-                    content=full_response,
-                    name=self.context.character_config.character_name,
-                    avatar=self.context.character_config.avatar,
-                )
-                logger.info(f"AI response: {full_response}")
-
-            # Wait for any pending TTS tasks (if any) before finalizing
-            if self.tts_manager.task_list:
-                await asyncio.gather(*self.tts_manager.task_list)
-                await self.websocket_send(
-                    json.dumps({"type": "backend-synth-complete"})
-                )
-
-            await self._finalize_conversation_turn(
-                tts_manager=self.tts_manager,
-                websocket_send=self.websocket_send,
-                client_uid=self.client_uid,
-            )
-
-            return full_response
-
-        except asyncio.CancelledError:
-            logger.info(
-                f"🤡👍 Conversation {self.session_emoji} "
-                "cancelled because interrupted."
-            )
-            raise
-        except Exception as e:
-            logger.error(f"Error in conversation chain: {e}")
-            await self.websocket_send(
-                json.dumps(
-                    {"type": "error", "message": f"Conversation error: {str(e)}"}
-                )
-            )
-            raise
-        finally:
-            self.cleanup()
-
-    async def _process_agent_response(
-        self,
-        batch_input: BatchInput,
-    ) -> str:
-        """Process agent response and generate output
-
-        Args:
-            batch_input: Input data for the agent
-
-        Returns:
-            str: The complete response text
-        """
-        full_response = ""
-        try:
-            agent_output = self.agent_engine.chat(batch_input)
-            async for output in agent_output:
-                response_part = await self._process_agent_output(
-                    output=output,
-                    character_config=self.context.character_config,
-                    live2d_model=self.live2d_model,
-                    tts_engine=self.tts_engine,
-                    websocket_send=self.websocket_send,
-                )
-                full_response += response_part
-
-        except Exception as e:
-            logger.error(f"Error processing agent response: {e}")
-            raise
+        await finalize_conversation_turn(
+            tts_manager=tts_manager,
+            websocket_send=websocket_send,
+            client_uid=client_uid,
+        )
 
         return full_response
+
+    except asyncio.CancelledError:
+        logger.info(
+            f"🤡👍 Conversation {session_emoji} cancelled because interrupted."
+        )
+        raise
+    except Exception as e:
+        logger.error(f"Error in conversation chain: {e}")
+        await websocket_send(
+            json.dumps(
+                {"type": "error", "message": f"Conversation error: {str(e)}"}
+            )
+        )
+        raise
+    finally:
+        cleanup_conversation(tts_manager, session_emoji)
+
+async def process_agent_response(
+    context: ServiceContext,
+    batch_input: Any,
+    websocket_send: WebSocketSend,
+    tts_manager: TTSTaskManager,
+) -> str:
+    """Process agent response and generate output
+
+    Args:
+        context: Service context containing all configurations and engines
+        batch_input: Input data for the agent
+        websocket_send: WebSocket send function
+        tts_manager: TTSTaskManager for the conversation
+
+    Returns:
+        str: The complete response text
+    """
+    full_response = ""
+    try:
+        agent_output = context.agent_engine.chat(batch_input)
+        async for output in agent_output:
+            response_part = await process_agent_output(
+                output=output,
+                character_config=context.character_config,
+                live2d_model=context.live2d_model,
+                tts_engine=context.tts_engine,
+                websocket_send=websocket_send,
+                tts_manager=tts_manager,
+            )
+            full_response += response_part
+
+    except Exception as e:
+        logger.error(f"Error processing agent response: {e}")
+        raise
+
+    return full_response

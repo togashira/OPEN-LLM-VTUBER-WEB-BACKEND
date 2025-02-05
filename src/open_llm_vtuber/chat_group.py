@@ -1,14 +1,14 @@
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Callable, Any
 from dataclasses import dataclass
+from fastapi import WebSocket
+import json
 from loguru import logger
-
 
 @dataclass
 class Group:
     group_id: str
     owner_uid: str
     members: Set[str]  # Set of client_uids
-
 
 class ChatGroupManager:
     def __init__(self):
@@ -156,3 +156,142 @@ class ChatGroupManager:
     def get_group_by_id(self, group_id: str) -> Optional[Group]:
         """Get group by group ID"""
         return self.groups.get(group_id)
+
+
+async def handle_group_operation(
+    operation: str,
+    client_uid: str,
+    target_uid: str,
+    chat_group_manager: "ChatGroupManager",
+    client_connections: Dict[str, WebSocket],
+    send_group_update: Callable,
+) -> None:
+    """Handle group-related operations"""
+    if target_uid:
+        # Get all affected members before operation
+        old_members = chat_group_manager.get_group_members(client_uid)
+        target_old_members = chat_group_manager.get_group_members(target_uid)
+        all_affected_members = set(old_members + target_old_members)
+
+        if operation == "add-client-to-group":
+            success, message = chat_group_manager.add_client_to_group(
+                inviter_uid=client_uid, invitee_uid=target_uid
+            )
+
+            if success and target_uid in client_connections:
+                try:
+                    # Send group update to the newly invited member
+                    await send_group_update(client_connections[target_uid], target_uid)
+                    # Notify the invited member
+                    await client_connections[target_uid].send_text(
+                        json.dumps(
+                            {
+                                "type": "group-operation-result",
+                                "success": True,
+                                "message": f"You have been invited to the group by {client_uid}",
+                            }
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to update invited member {target_uid}: {e}")
+
+        else:  # remove operation
+            success, message = chat_group_manager.remove_client_from_group(
+                remover_uid=client_uid, target_uid=target_uid
+            )
+
+        # Send operation result to the initiator
+        await client_connections[client_uid].send_text(
+            json.dumps(
+                {
+                    "type": "group-operation-result",
+                    "success": success,
+                    "message": message,
+                }
+            )
+        )
+
+        if success:
+            # For removal operation, update the removed member
+            if operation != "add-client-to-group" and target_uid in client_connections:
+                try:
+                    await send_group_update(client_connections[target_uid], target_uid)
+                    await client_connections[target_uid].send_text(
+                        json.dumps(
+                            {
+                                "type": "group-operation-result",
+                                "success": True,
+                                "message": "You have been removed from the group",
+                            }
+                        )
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to update removed member {target_uid}: {e}")
+
+            # Get new group members after operation
+            new_members = chat_group_manager.get_group_members(client_uid)
+            all_affected_members.update(new_members)
+
+            # Update remaining group members
+            for member_uid in all_affected_members:
+                if member_uid in client_connections and member_uid != target_uid:
+                    try:
+                        await send_group_update(
+                            client_connections[member_uid], member_uid
+                        )
+                        if member_uid != client_uid:
+                            await client_connections[member_uid].send_text(
+                                json.dumps(
+                                    {
+                                        "type": "group-operation-result",
+                                        "success": True,
+                                        "message": (
+                                            f"Member {target_uid} was "
+                                            f"{'added to' if operation == 'add-client-to-group' else 'removed from'} "
+                                            "the group"
+                                        ),
+                                    }
+                                )
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to update member {member_uid}: {e}")
+
+
+async def handle_client_disconnect(
+    client_uid: str,
+    chat_group_manager: "ChatGroupManager",
+    client_connections: Dict[str, WebSocket],
+    send_group_update: Callable,
+) -> None:
+    """Handle client disconnection from group"""
+    old_group_members = chat_group_manager.get_group_members(client_uid)
+    chat_group_manager.remove_client(client_uid)
+
+    # Send updates to remaining group members
+    for member_uid in old_group_members:
+        if member_uid != client_uid and member_uid in client_connections:
+            await send_group_update(client_connections[member_uid], member_uid)
+            await client_connections[member_uid].send_text(
+                json.dumps(
+                    {
+                        "type": "group-operation-result",
+                        "success": True,
+                        "message": f"Member {client_uid} disconnected",
+                    }
+                )
+            )
+
+
+async def broadcast_to_group(
+    group_members: List[str],
+    message: Dict[str, Any],
+    client_connections: Dict[str, WebSocket],
+    exclude_uid: Optional[str] = None,
+) -> None:
+    """Broadcasts a message to all members in a group except the sender"""
+    for member_uid in group_members:
+        if member_uid != exclude_uid and member_uid in client_connections:
+            try:
+                await client_connections[member_uid].send_text(json.dumps(message))
+            except Exception as e:
+                logger.error(f"Failed to broadcast to {member_uid}: {e}")
