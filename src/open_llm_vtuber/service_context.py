@@ -42,7 +42,8 @@ class ServiceContext:
         self.asr_engine: ASRInterface = None
         self.tts_engine: TTSInterface = None
         self.agent_engine: AgentInterface = None
-        self.translate_engine: TranslateInterface = None
+        # translate_engine can be none if translation is disabled
+        self.translate_engine: TranslateInterface | None = None
 
         # the system prompt is a combination of the persona prompt and live2d expression prompt
         self.system_prompt: str = None
@@ -75,7 +76,7 @@ class ServiceContext:
         asr_engine: ASRInterface,
         tts_engine: TTSInterface,
         agent_engine: AgentInterface,
-        translate_engine: TranslateInterface,
+        translate_engine: TranslateInterface | None,
     ) -> None:
         """
         Load the ServiceContext with the reference of the provided instances.
