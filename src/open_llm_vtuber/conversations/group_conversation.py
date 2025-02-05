@@ -5,7 +5,7 @@ from loguru import logger
 from fastapi import WebSocket
 import numpy as np
 
-from .utils import (
+from .conversation_utils import (
     create_batch_input,
     process_agent_output,
     process_user_input,
@@ -302,6 +302,7 @@ async def process_member_response(
                 tts_engine=context.tts_engine,
                 websocket_send=current_ws_send,
                 tts_manager=tts_manager,
+                translate_engine=context.translate_engine,
             )
             full_response += response_part
 

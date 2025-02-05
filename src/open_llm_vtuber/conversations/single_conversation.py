@@ -4,7 +4,7 @@ import json
 from loguru import logger
 import numpy as np
 
-from .utils import (
+from .conversation_utils import (
     create_batch_input,
     process_agent_output,
     send_conversation_start_signals,
@@ -149,6 +149,7 @@ async def process_agent_response(
                 tts_engine=context.tts_engine,
                 websocket_send=websocket_send,
                 tts_manager=tts_manager,
+                translate_engine=context.translate_engine,
             )
             full_response += response_part
 

@@ -40,8 +40,9 @@ async def process_agent_output(
     tts_engine: TTSInterface,
     websocket_send: WebSocketSend,
     tts_manager: TTSTaskManager,
+    translate_engine: Optional[Any] = None,
 ) -> str:
-    """Process agent output with character information"""
+    """Process agent output with character information and optional translation"""
     output.display_text.name = character_config.character_name
     output.display_text.avatar = character_config.avatar
 
@@ -49,7 +50,12 @@ async def process_agent_output(
     try:
         if isinstance(output, SentenceOutput):
             full_response = await handle_sentence_output(
-                output, live2d_model, tts_engine, websocket_send, tts_manager
+                output, 
+                live2d_model, 
+                tts_engine, 
+                websocket_send, 
+                tts_manager,
+                translate_engine,
             )
         elif isinstance(output, AudioOutput):
             full_response = await handle_audio_output(output, websocket_send)
@@ -69,10 +75,19 @@ async def handle_sentence_output(
     tts_engine: TTSInterface,
     websocket_send: WebSocketSend,
     tts_manager: TTSTaskManager,
+    translate_engine: Optional[Any] = None,
 ) -> str:
-    """Handle sentence output type"""
+    """Handle sentence output type with optional translation support"""
     full_response = ""
     async for display_text, tts_text, actions in output:
+        logger.debug(f"🏃 Processing output: '''{tts_text}'''...")
+        
+        if translate_engine:
+            tts_text = translate_engine.translate(tts_text)
+            logger.info(f"🏃 Text after translation: '''{tts_text}'''...")
+        else:
+            logger.info("🚫 No translation engine available. Skipping translation.")
+            
         full_response += display_text.text
         await tts_manager.speak(
             tts_text=tts_text,

@@ -11,7 +11,7 @@ from ..chat_history_manager import store_message, modify_latest_message
 from ..service_context import ServiceContext
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
-from .utils import EMOJI_LIST
+from .conversation_utils import EMOJI_LIST
 
 async def handle_conversation_trigger(
     msg_type: str,
