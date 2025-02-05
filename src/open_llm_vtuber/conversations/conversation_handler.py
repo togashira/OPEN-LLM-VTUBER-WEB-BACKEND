@@ -7,7 +7,7 @@ from fastapi import WebSocket
 from loguru import logger
 
 from ..chat_group import ChatGroupManager
-from ..chat_history_manager import store_message, modify_latest_message
+from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
@@ -113,14 +113,12 @@ async def handle_group_interrupt(
                     context = client_contexts[member_uid]
                     context.agent_engine.handle_interrupt(heard_response)
                     if context.history_uid:
-                        if not modify_latest_message(
+                        store_message(
                             conf_uid=context.character_config.conf_uid,
                             history_uid=context.history_uid,
                             role="ai",
-                            new_content=heard_response,
-                        ):
-                            logger.warning("Failed to modify message")
-
+                            content=heard_response,
+                        )
                         store_message(
                             conf_uid=context.character_config.conf_uid,
                             history_uid=context.history_uid,

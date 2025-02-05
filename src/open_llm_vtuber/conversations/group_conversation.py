@@ -74,12 +74,12 @@ async def process_group_conversation(
             group_members=group_members,
             initiator_client_uid=initiator_client_uid,
         )
-
-        # Store user message
-        if initiator_context and initiator_context.history_uid:
+        
+        for member_uid in group_members:
+            member_context = client_contexts[member_uid]
             store_message(
-                conf_uid=initiator_context.character_config.conf_uid,
-                history_uid=initiator_context.history_uid,
+                conf_uid=member_context.character_config.conf_uid,
+                history_uid=member_context.history_uid,
                 role="human",
                 content=input_text,
                 name=human_name,
@@ -229,20 +229,38 @@ async def handle_group_member_turn(
         tts_manager=tts_manager,
     )
 
+    if tts_manager.task_list:
+        await asyncio.gather(*tts_manager.task_list)
+        await current_ws_send(json.dumps({"type": "backend-synth-complete"}))
+
+        broadcast_ctx = BroadcastContext(
+            broadcast_func=broadcast_func,
+            group_members=group_members,
+            current_client_uid=current_member_uid,
+        )
+
+        await finalize_conversation_turn(
+            tts_manager=tts_manager,
+            websocket_send=current_ws_send,
+            client_uid=current_member_uid,
+            broadcast_ctx=broadcast_ctx,
+        )
+
     if full_response:
         ai_message = f"{context.character_config.character_name}: {full_response}"
         state.conversation_history.append(ai_message)
         logger.info(f"Appended complete response: {ai_message}")
 
-        if context.history_uid:
+        for member_uid in group_members:
+            member_context = client_contexts[member_uid]
             store_message(
-                conf_uid=context.character_config.conf_uid,
-                history_uid=context.history_uid,
-                role="ai",
-                content=full_response,
-                name=context.character_config.character_name,
-                avatar=context.character_config.avatar,
-            )
+                    conf_uid=member_context.character_config.conf_uid,
+                    history_uid=member_context.history_uid,
+                    role="ai",
+                    content=full_response,
+                    name=context.character_config.character_name,
+                    avatar=context.character_config.avatar,
+                )
 
     state.memory_index[current_member_uid] = len(state.conversation_history)
     state.group_queue.append(current_member_uid)
@@ -288,11 +306,6 @@ async def process_member_response(
 
     try:
         agent_output = context.agent_engine.chat(batch_input)
-        broadcast_ctx = BroadcastContext(
-            broadcast_func=broadcast_func,
-            group_members=group_members,
-            current_client_uid=current_member_uid,
-        )
 
         async for output in agent_output:
             response_part = await process_agent_output(
@@ -306,56 +319,8 @@ async def process_member_response(
             )
             full_response += response_part
 
-            # Store forwarded message for each group member
-            for member_uid in group_members:
-                if member_uid != current_member_uid:
-                    await store_forwarded_message(
-                        member_uid=member_uid,
-                        client_contexts=context,
-                        content=response_part,
-                        name=context.character_config.character_name,
-                        avatar=context.character_config.avatar,
-                    )
-
-        if tts_manager.task_list:
-            await asyncio.gather(*tts_manager.task_list)
-            await current_ws_send(json.dumps({"type": "backend-synth-complete"}))
-
-            await finalize_conversation_turn(
-                tts_manager=tts_manager,
-                websocket_send=current_ws_send,
-                client_uid=current_member_uid,
-                broadcast_ctx=broadcast_ctx,
-            )
-
     except Exception as e:
         logger.error(f"Error processing member response: {e}")
         raise
 
     return full_response
-
-async def store_forwarded_message(
-    member_uid: str,
-    client_contexts: ServiceContext,
-    content: str,
-    name: str,
-    avatar: str,
-) -> None:
-    """Store forwarded message for a group member"""
-    if not client_contexts.history_uid:
-        return
-
-    try:
-        store_message(
-            conf_uid=client_contexts.character_config.conf_uid,
-            history_uid=client_contexts.history_uid,
-            role="ai",
-            content=content,
-            name=name,
-            avatar=avatar,
-        )
-        logger.debug(
-            f"Stored forwarded message for member {member_uid}: {content[:50]}..."
-        )
-    except Exception as e:
-        logger.error(f"Failed to store forwarded message: {e}")

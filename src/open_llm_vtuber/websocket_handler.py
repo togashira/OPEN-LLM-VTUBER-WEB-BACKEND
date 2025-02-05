@@ -355,14 +355,12 @@ class WebSocketHandler:
                 logger.error(f"Error handling interrupt: {e}")
 
             if context.history_uid:
-                if not modify_latest_message(
+                store_message(
                     conf_uid=context.character_config.conf_uid,
                     history_uid=context.history_uid,
                     role="ai",
-                    new_content=heard_response,
-                ):
-                    logger.warning("Failed to modify message")
-
+                    content=heard_response,
+                )
                 store_message(
                     conf_uid=context.character_config.conf_uid,
                     history_uid=context.history_uid,

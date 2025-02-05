@@ -78,19 +78,7 @@ async def process_single_conversation(
             batch_input=batch_input,
             websocket_send=websocket_send,
             tts_manager=tts_manager,
-        )
-        
-        # Store conversation history if enabled
-        if context.history_uid and full_response:
-            store_message(
-                conf_uid=context.character_config.conf_uid,
-                history_uid=context.history_uid,
-                role="ai",
-                content=full_response,
-                name=context.character_config.character_name,
-                avatar=context.character_config.avatar,
-            )
-            logger.info(f"AI response: {full_response}")
+        )       
 
         # Wait for any pending TTS tasks
         if tts_manager.task_list:
@@ -102,6 +90,17 @@ async def process_single_conversation(
             websocket_send=websocket_send,
             client_uid=client_uid,
         )
+        
+        if context.history_uid and full_response:
+            store_message(
+                conf_uid=context.character_config.conf_uid,
+                history_uid=context.history_uid,
+                role="ai",
+                content=full_response,
+                name=context.character_config.character_name,
+                avatar=context.character_config.avatar,
+            )
+            logger.info(f"AI response: {full_response}")
 
         return full_response
 
