@@ -1,4 +1,4 @@
-from typing import AsyncIterator, List, Dict, Any, Callable
+from typing import AsyncIterator, List, Dict, Any, Callable, Literal
 from loguru import logger
 
 from .agent_interface import AgentInterface
@@ -36,17 +36,21 @@ class BasicMemoryAgent(AgentInterface):
         tts_preprocessor_config: TTSPreprocessorConfig = None,
         faster_first_response: bool = True,
         segment_method: str = "pysbd",
+        interrupt_method: Literal["system", "user"] = "user",
     ):
         """
         Initialize the agent with LLM, system prompt and configuration
 
         Args:
-            llm: StatelessLLMInterface - The LLM to use
-            system: str - System prompt
-            live2d_model: Live2dModel - Model for expression extraction
-            tts_preprocessor_config: TTSPreprocessorConfig - Configuration for TTS preprocessing
-            faster_first_response: bool - Whether to enable faster first response
-            segment_method: str - Method for sentence segmentation
+            llm: `StatelessLLMInterface` - The LLM to use
+            system: `str` - System prompt
+            live2d_model: `Live2dModel` - Model for expression extraction
+            tts_preprocessor_config: `TTSPreprocessorConfig` - Configuration for TTS preprocessing
+            faster_first_response: `bool` - Whether to enable faster first response
+            segment_method: `str` - Method for sentence segmentation
+            interrupt_method: `Literal["system", "user"]` -
+                Methods for writing interruptions signal in chat history.
+
         """
         super().__init__()
         self._memory = []
@@ -54,6 +58,7 @@ class BasicMemoryAgent(AgentInterface):
         self._tts_preprocessor_config = tts_preprocessor_config
         self._faster_first_response = faster_first_response
         self._segment_method = segment_method
+        self.interrupt_method = interrupt_method
         # Flag to ensure a single interrupt handling per conversation
         self._interrupt_handled = False
         self._set_llm(llm)
@@ -79,12 +84,21 @@ class BasicMemoryAgent(AgentInterface):
             the system prompt
         """
         logger.debug(f"Memory Agent: Setting system prompt: '''{system}'''")
+
+        if self.interrupt_method == "user":
+            system = f"{system}\n\nIf you received `[interrupted by user]` signal, you were interrupted."
+
         self._system = system
 
-    def _add_message(self, message: str | List[Dict[str, Any]], role: str, display_text: DisplayText | None = None):
+    def _add_message(
+        self,
+        message: str | List[Dict[str, Any]],
+        role: str,
+        display_text: DisplayText | None = None,
+    ):
         """
         Add a message to the memory
-        
+
         Args:
             message: Message content (string or list of content items)
             role: Message role
@@ -156,7 +170,7 @@ class BasicMemoryAgent(AgentInterface):
                 )
         self._memory.append(
             {
-                "role": "system",
+                "role": "system" if self.interrupt_method == "system" else "user",
                 "content": "[Interrupted by user]",
             }
         )
@@ -287,11 +301,10 @@ class BasicMemoryAgent(AgentInterface):
             ai_participants: List[str] - Names of other AI participants in the conversation
         """
         other_ais = ", ".join(name for name in ai_participants)
-        
+
         # Load and format the group conversation prompt
         group_context = prompt_loader.load_util("group_conversation_prompt").format(
-            human_name=human_name,
-            other_ais=other_ais
+            human_name=human_name, other_ais=other_ais
         )
 
         self._memory.append({"role": "user", "content": group_context})

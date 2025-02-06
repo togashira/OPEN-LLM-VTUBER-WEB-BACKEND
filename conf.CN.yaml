@@ -99,6 +99,10 @@ character_config:
         project_id: "project_glass" # 项目 ID
         model: "qwen2.5:latest" # 使用的模型
         temperature: 1.0 # 温度，介于 0 到 2 之间
+        interrupt_method: "user"
+        # 用于表示中断信号的方法(提示词模式)。
+        # 如果LLM支持在聊天记忆中的任何位置插入系统提示词，请使用“system”。
+        # 否则，请使用“user”。您一般不需要更改此设置。
 
       # Claude API 配置
       claude_llm:
