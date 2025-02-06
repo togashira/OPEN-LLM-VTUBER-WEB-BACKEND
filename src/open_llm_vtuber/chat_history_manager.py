@@ -68,7 +68,7 @@ def create_new_history(conf_uid: str) -> str:
 
     # Use uuid.uuid4().hex to generate a UUID without hyphens
     # New format: UUID_YYYY-MM-DD_HH-MM-SS
-    history_uid = f"{uuid.uuid4().hex}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    history_uid = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{uuid.uuid4().hex}"
     conf_dir = _ensure_conf_dir(conf_uid)  # conf_uid is sanitized here
 
     # Create history file with empty metadata
