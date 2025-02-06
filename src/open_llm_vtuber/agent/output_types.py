@@ -28,17 +28,14 @@ class BaseOutput(ABC):
 @dataclass
 class DisplayText:
     """Text to be displayed with optional metadata"""
+
     text: str
     name: Optional[str] = "AI"  # Keep the name field for frontend display
     avatar: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
-        return {
-            "text": self.text,
-            "name": self.name,
-            "avatar": self.avatar
-        }
+        return {"text": self.text, "name": self.name, "avatar": self.avatar}
 
     def __str__(self) -> str:
         """String representation for logging"""

@@ -17,7 +17,6 @@ class TextSource(Enum):
 
     INPUT = "input"  # Main user input/transcription
     CLIPBOARD = "clipboard"  # Text from clipboard
-    
 
 
 @dataclass

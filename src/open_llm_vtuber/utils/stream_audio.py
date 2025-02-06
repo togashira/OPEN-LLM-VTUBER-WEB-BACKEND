@@ -4,6 +4,7 @@ from pydub.utils import make_chunks
 from ..agent.output_types import Actions
 from ..agent.output_types import DisplayText
 
+
 def _get_volume_by_chunks(audio: AudioSegment, chunk_length_ms: int) -> list:
     """
     Calculate the normalized volume (RMS) for each chunk of the audio.
@@ -45,7 +46,7 @@ def prepare_audio_payload(
     """
     if isinstance(display_text, DisplayText):
         display_text = display_text.to_dict()
-    
+
     if not audio_path:
         # Return payload for silent display
         return {

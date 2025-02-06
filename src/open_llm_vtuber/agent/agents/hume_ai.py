@@ -170,10 +170,12 @@ class HumeAIAgent(AgentInterface):
 
             # Extract main text from BatchInput
             input_text = batch_input.texts[0].content if batch_input.texts else ""
-            
+
             # Hume AI doesn't support image input, log warning if images present
             if batch_input.images:
-                logger.warning("Hume AI does not support image input. Images will be ignored.")
+                logger.warning(
+                    "Hume AI does not support image input. Images will be ignored."
+                )
 
             message = {
                 "type": "user_input",

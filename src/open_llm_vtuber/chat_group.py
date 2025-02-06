@@ -4,11 +4,13 @@ from fastapi import WebSocket
 import json
 from loguru import logger
 
+
 @dataclass
 class Group:
     group_id: str
     owner_uid: str
     members: Set[str]  # Set of client_uids
+
 
 class ChatGroupManager:
     def __init__(self):

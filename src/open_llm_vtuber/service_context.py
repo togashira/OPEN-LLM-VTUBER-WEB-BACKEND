@@ -187,10 +187,10 @@ class ServiceContext:
             return
 
         system_prompt = self.construct_system_prompt(persona_prompt)
-        
+
         # Pass avatar to agent factory
         avatar = self.character_config.avatar or ""  # Get avatar from config
-        
+
         try:
             self.agent_engine = AgentFactory.create_agent(
                 conversation_agent_choice=agent_config.conversation_agent_choice,
@@ -199,7 +199,7 @@ class ServiceContext:
                 system_prompt=system_prompt,
                 live2d_model=self.live2d_model,
                 tts_preprocessor_config=self.character_config.tts_preprocessor_config,
-                character_avatar=avatar  # Add avatar parameter
+                character_avatar=avatar,  # Add avatar parameter
             )
 
             logger.debug(f"Agent choice: {agent_config.conversation_agent_choice}")
@@ -257,7 +257,7 @@ class ServiceContext:
         for prompt_name, prompt_file in self.system_config.tool_prompts.items():
             if prompt_name == "group_conversation_prompt":
                 continue
-            
+
             prompt_content = prompt_loader.load_util(prompt_file)
 
             if prompt_name == "live2d_expression_prompt":

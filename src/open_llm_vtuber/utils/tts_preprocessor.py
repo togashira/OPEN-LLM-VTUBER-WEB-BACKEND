@@ -180,17 +180,17 @@ def filter_angle_brackets(text: str) -> str:
 def filter_asterisks(text: str) -> str:
     """
     Removes text enclosed within asterisks of any length (*, **, ***, etc.) from a string.
-    
+
     Args:
         text: The input string.
-    
+
     Returns:
         The string with asterisk-enclosed text removed.
     """
     # Handle asterisks of any length (*, **, ***, etc.)
-    filtered_text = re.sub(r'\*{1,}((?!\*).)*?\*{1,}', '', text)
-    
+    filtered_text = re.sub(r"\*{1,}((?!\*).)*?\*{1,}", "", text)
+
     # Clean up any extra spaces
-    filtered_text = re.sub(r'\s+', ' ', filtered_text).strip()
-    
+    filtered_text = re.sub(r"\s+", " ", filtered_text).strip()
+
     return filtered_text

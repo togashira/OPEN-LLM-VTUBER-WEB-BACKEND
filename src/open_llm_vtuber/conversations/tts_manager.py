@@ -37,7 +37,7 @@ class TTSTaskManager:
     ) -> None:
         """
         Queue a TTS task while maintaining order of delivery.
-        
+
         Args:
             tts_text: Text to synthesize
             display_text: Text to display in UI
@@ -51,7 +51,9 @@ class TTSTaskManager:
             await self._send_silent_payload(display_text, actions, websocket_send)
             return
 
-        logger.debug(f"🏃Queuing TTS task for: '''{tts_text}''' (by {display_text.name})")
+        logger.debug(
+            f"🏃Queuing TTS task for: '''{tts_text}''' (by {display_text.name})"
+        )
 
         # Get current sequence number
         current_sequence = self._sequence_counter
@@ -82,7 +84,7 @@ class TTSTaskManager:
         Runs continuously until all payloads are processed.
         """
         buffered_payloads: Dict[int, Dict] = {}
-        
+
         while True:
             try:
                 # Get payload from queue
@@ -96,7 +98,7 @@ class TTSTaskManager:
                     self._next_sequence_to_send += 1
 
                 self._payload_queue.task_done()
-                
+
             except asyncio.CancelledError:
                 break
 
@@ -134,7 +136,7 @@ class TTSTaskManager:
             )
             # Queue the payload with its sequence number
             await self._payload_queue.put((payload, sequence_number))
-            
+
         except Exception as e:
             logger.error(f"Error preparing audio payload: {e}")
             # Queue silent payload for error case
@@ -144,7 +146,7 @@ class TTSTaskManager:
                 actions=actions,
             )
             await self._payload_queue.put((payload, sequence_number))
-            
+
         finally:
             if audio_file_path:
                 tts_engine.remove_file(audio_file_path)

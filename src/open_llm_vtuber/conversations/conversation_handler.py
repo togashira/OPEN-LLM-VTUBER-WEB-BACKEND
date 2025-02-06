@@ -134,7 +134,7 @@ async def handle_group_interrupt(
     # Get state and speaker info before cancellation
     state = GroupConversationState.get_state(group_id)
     current_speaker_uid = state.current_speaker_uid if state else None
-    
+
     # Get context from current speaker
     context = None
     group = chat_group_manager.get_group_by_id(group_id)
@@ -151,7 +151,7 @@ async def handle_group_interrupt(
         await task
     except asyncio.CancelledError:
         logger.info(f"🛑 Group conversation {group_id} cancelled successfully.")
-    
+
     current_conversation_tasks.pop(group_id, None)
     GroupConversationState.remove_state(group_id)  # Clean up state after we've used it
 

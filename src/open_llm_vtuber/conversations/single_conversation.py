@@ -18,6 +18,7 @@ from .tts_manager import TTSTaskManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
 
+
 async def process_single_conversation(
     context: ServiceContext,
     websocket_send: WebSocketSend,
@@ -41,7 +42,7 @@ async def process_single_conversation(
     """
     # Create TTSTaskManager for this conversation
     tts_manager = TTSTaskManager()
-    
+
     try:
         # Send initial signals
         await send_conversation_start_signals(websocket_send)
@@ -78,7 +79,7 @@ async def process_single_conversation(
             batch_input=batch_input,
             websocket_send=websocket_send,
             tts_manager=tts_manager,
-        )       
+        )
 
         # Wait for any pending TTS tasks
         if tts_manager.task_list:
@@ -90,7 +91,7 @@ async def process_single_conversation(
             websocket_send=websocket_send,
             client_uid=client_uid,
         )
-        
+
         if context.history_uid and full_response:
             store_message(
                 conf_uid=context.character_config.conf_uid,
@@ -105,20 +106,17 @@ async def process_single_conversation(
         return full_response
 
     except asyncio.CancelledError:
-        logger.info(
-            f"🤡👍 Conversation {session_emoji} cancelled because interrupted."
-        )
+        logger.info(f"🤡👍 Conversation {session_emoji} cancelled because interrupted.")
         raise
     except Exception as e:
         logger.error(f"Error in conversation chain: {e}")
         await websocket_send(
-            json.dumps(
-                {"type": "error", "message": f"Conversation error: {str(e)}"}
-            )
+            json.dumps({"type": "error", "message": f"Conversation error: {str(e)}"})
         )
         raise
     finally:
         cleanup_conversation(tts_manager, session_emoji)
+
 
 async def process_agent_response(
     context: ServiceContext,

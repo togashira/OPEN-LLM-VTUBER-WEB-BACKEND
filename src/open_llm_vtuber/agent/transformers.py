@@ -75,6 +75,7 @@ def display_processor():
     """
     Decorator that processes text for display.
     """
+
     def decorator(
         func: Callable[..., AsyncIterator[Tuple[SentenceWithTags, Actions]]],
     ) -> Callable[..., AsyncIterator[Tuple[SentenceWithTags, DisplayText, Actions]]]:
@@ -93,11 +94,12 @@ def display_processor():
                             text = "("
                         elif tag.state == TagState.END:
                             text = ")"
-                            
+
                 display = DisplayText(text=text)  # Simplified DisplayText creation
                 yield sentence, display, actions
 
         return wrapper
+
     return decorator
 
 
@@ -108,8 +110,11 @@ def tts_filter(
     Decorator that filters text for TTS.
     Skips TTS for think tag content.
     """
+
     def decorator(
-        func: Callable[..., AsyncIterator[Tuple[SentenceWithTags, DisplayText, Actions]]],
+        func: Callable[
+            ..., AsyncIterator[Tuple[SentenceWithTags, DisplayText, Actions]]
+        ],
     ) -> Callable[..., AsyncIterator[SentenceOutput]]:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> AsyncIterator[SentenceOutput]:

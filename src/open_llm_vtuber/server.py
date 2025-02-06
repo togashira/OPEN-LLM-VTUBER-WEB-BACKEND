@@ -21,7 +21,7 @@ class CustomStaticFiles(StaticFiles):
 
 class AvatarStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
-        allowed_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.svg')
+        allowed_extensions = (".jpg", ".jpeg", ".png", ".gif", ".svg")
         if not any(path.lower().endswith(ext) for ext in allowed_extensions):
             return Response("Forbidden file type", status_code=403)
         return await super().get_response(path, scope)

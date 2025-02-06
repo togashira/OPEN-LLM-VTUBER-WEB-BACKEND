@@ -36,8 +36,7 @@ class CharacterConfig(I18nMixin):
             en="Name of the Live2D model to use", zh="使用的Live2D模型名称"
         ),
         "character_name": Description(
-            en="Name of the AI character in conversation",
-            zh="对话中AI角色的名字"
+            en="Name of the AI character in conversation", zh="对话中AI角色的名字"
         ),
         "persona_prompt": Description(
             en="Persona prompt. The persona of your character.", zh="角色人设提示词"
@@ -56,12 +55,10 @@ class CharacterConfig(I18nMixin):
             zh="语音合成预处理器配置",
         ),
         "human_name": Description(
-            en="Name of the human user in conversation",
-            zh="对话中人类用户的名字"
+            en="Name of the human user in conversation", zh="对话中人类用户的名字"
         ),
         "avatar": Description(
-            en="Avatar image path for the character",
-            zh="角色头像图片路径"
+            en="Avatar image path for the character", zh="角色头像图片路径"
         ),
     }
 

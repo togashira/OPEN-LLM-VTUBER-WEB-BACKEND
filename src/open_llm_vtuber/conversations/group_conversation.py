@@ -23,6 +23,7 @@ from ..service_context import ServiceContext
 from ..chat_history_manager import store_message
 from .tts_manager import TTSTaskManager
 
+
 async def process_group_conversation(
     client_contexts: Dict[str, ServiceContext],
     client_connections: Dict[str, WebSocket],
@@ -47,7 +48,7 @@ async def process_group_conversation(
     """
     # Create TTSTaskManager for each member
     tts_managers = {uid: TTSTaskManager() for uid in group_members}
-    
+
     try:
         logger.info(f"Group Conversation Chain {session_emoji} started!")
 
@@ -56,9 +57,11 @@ async def process_group_conversation(
             group_id=f"group_{initiator_client_uid}",  # Use same format as chat_group
             session_emoji=session_emoji,
             group_queue=list(group_members),
-            memory_index={uid: 0 for uid in group_members}  # Initialize memory index for each member
+            memory_index={
+                uid: 0 for uid in group_members
+            },  # Initialize memory index for each member
         )
-        
+
         # Initialize group conversation context for each AI
         init_group_conversation_contexts(client_contexts)
 
@@ -79,7 +82,7 @@ async def process_group_conversation(
             group_members=group_members,
             initiator_client_uid=initiator_client_uid,
         )
-        
+
         for member_uid in group_members:
             member_context = client_contexts[member_uid]
             store_message(
@@ -130,6 +133,7 @@ async def process_group_conversation(
         # Clean up
         GroupConversationState.remove_state(state.group_id)
 
+
 def init_group_conversation_state(
     group_members: List[str], session_emoji: str
 ) -> GroupConversationState:
@@ -141,11 +145,12 @@ def init_group_conversation_state(
         session_emoji=session_emoji,
     )
 
-def init_group_conversation_contexts(client_contexts: Dict[str, ServiceContext]) -> None:
+
+def init_group_conversation_contexts(
+    client_contexts: Dict[str, ServiceContext],
+) -> None:
     """Initialize group conversation context for each AI participant"""
-    ai_names = [
-        ctx.character_config.character_name for ctx in client_contexts.values()
-    ]
+    ai_names = [ctx.character_config.character_name for ctx in client_contexts.values()]
 
     for context in client_contexts.values():
         agent = context.agent_engine
@@ -162,6 +167,7 @@ def init_group_conversation_contexts(client_contexts: Dict[str, ServiceContext])
                 f"Initialized group conversation context for "
                 f"{context.character_config.character_name}"
             )
+
 
 async def process_group_input(
     user_input: Union[str, np.ndarray],
@@ -180,6 +186,7 @@ async def process_group_input(
     )
     return input_text
 
+
 async def broadcast_transcription(
     broadcast_func: BroadcastFunc,
     group_members: List[str],
@@ -196,6 +203,7 @@ async def broadcast_transcription(
         exclude_uid,
     )
 
+
 async def handle_group_member_turn(
     current_member_uid: str,
     state: GroupConversationState,
@@ -209,15 +217,13 @@ async def handle_group_member_turn(
     """Handle a single group member's conversation turn"""
     # Update current speaker before processing
     state.current_speaker_uid = current_member_uid
-    
+
     await broadcast_thinking_state(broadcast_func, group_members)
 
     context = client_contexts[current_member_uid]
     current_ws_send = client_connections[current_member_uid].send_text
 
-    new_messages = state.conversation_history[
-        state.memory_index[current_member_uid] :
-    ]
+    new_messages = state.conversation_history[state.memory_index[current_member_uid] :]
     new_context = "\n".join(new_messages) if new_messages else ""
 
     batch_input = create_batch_input(
@@ -261,19 +267,20 @@ async def handle_group_member_turn(
         for member_uid in group_members:
             member_context = client_contexts[member_uid]
             store_message(
-                    conf_uid=member_context.character_config.conf_uid,
-                    history_uid=member_context.history_uid,
-                    role="ai",
-                    content=full_response,
-                    name=context.character_config.character_name,
-                    avatar=context.character_config.avatar,
-                )
+                conf_uid=member_context.character_config.conf_uid,
+                history_uid=member_context.history_uid,
+                role="ai",
+                content=full_response,
+                name=context.character_config.character_name,
+                avatar=context.character_config.avatar,
+            )
 
     state.memory_index[current_member_uid] = len(state.conversation_history)
     state.group_queue.append(current_member_uid)
 
     # Clear speaker after turn completes
     state.current_speaker_uid = None
+
 
 async def broadcast_thinking_state(
     broadcast_func: BroadcastFunc, group_members: List[str]
@@ -288,6 +295,7 @@ async def broadcast_thinking_state(
         {"type": "full-text", "text": "Thinking..."},
     )
 
+
 async def handle_member_error(
     broadcast_func: BroadcastFunc,
     group_members: List[str],
@@ -301,6 +309,7 @@ async def handle_member_error(
             "message": error_message,
         },
     )
+
 
 async def process_member_response(
     context: ServiceContext,

@@ -42,9 +42,10 @@ class ConversationConfig(BaseModel):
 @dataclass
 class GroupConversationState:
     """State for group conversation"""
+
     # Class variable to track current states
-    _states: ClassVar[Dict[str, 'GroupConversationState']] = {}
-    
+    _states: ClassVar[Dict[str, "GroupConversationState"]] = {}
+
     group_id: str
     conversation_history: List[str] = field(default_factory=list)
     memory_index: Dict[str, int] = field(default_factory=dict)
@@ -57,7 +58,7 @@ class GroupConversationState:
         GroupConversationState._states[self.group_id] = self
 
     @classmethod
-    def get_state(cls, group_id: str) -> Optional['GroupConversationState']:
+    def get_state(cls, group_id: str) -> Optional["GroupConversationState"]:
         """Get conversation state by group_id"""
         return cls._states.get(group_id)
 
