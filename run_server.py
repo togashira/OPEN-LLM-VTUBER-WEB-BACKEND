@@ -1,5 +1,7 @@
 import os
 import sys
+import shutil
+import locale
 import atexit
 import argparse
 from pathlib import Path
@@ -50,10 +52,30 @@ def parse_args():
     return parser.parse_args()
 
 
+def init_config():
+    # If user config does not exist, copy from template based on system language
+    if not os.path.exists("conf.yaml"):
+        try:
+            sys_lang = locale.getdefaultlocale()[0] or ""
+        except Exception:
+            sys_lang = ""
+        template = (
+            "config_templates/conf.CN.default.yaml"
+            if sys_lang.lower().startswith("zh")
+            else "config_templates/conf.default.yaml"
+        )
+        if os.path.exists(template):
+            shutil.copy2(template, "conf.yaml")
+            print(f"Copied default configuration from {template} to conf.yaml")
+        else:
+            print(f"Error: Template file {template} not found.")
+            sys.exit(1)
+
+
 @logger.catch
 def run(console_log_level: str):
     init_logger(console_log_level)
-    logger.info(f"t41372/Open-LLM-VTuber, version v{get_version()}")
+    logger.info(f"Open-LLM-VTuber, version v{get_version()}")
 
     atexit.register(WebSocketServer.clean_cache)
 
@@ -73,6 +95,7 @@ def run(console_log_level: str):
 
 
 if __name__ == "__main__":
+    init_config()  # initialize configuration if needed
     args = parse_args()
     console_log_level = "DEBUG" if args.verbose else "INFO"
     if args.verbose:

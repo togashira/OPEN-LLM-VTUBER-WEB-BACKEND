@@ -37,6 +37,7 @@ TEXTS = {
         "invalid_lang": "无效的语言选择，使用英文作为默认语言",
         "not_git_repo": "错误：当前目录不是git仓库。请进入 Open-LLM-VTuber 目录后再运行此脚本。\n当然，更有可能的是你下载的Open-LLM-VTuber不包含.git文件夹 (如果你是透过下载压缩包而非使用 git clone 命令下载的话可能会造成这种情况)，这种情况下目前无法用脚本升级。",
         "backup_config": "备份配置文件到: {}",
+        "backup_user_config": "正在备份 {user_conf} 到 {backup_conf}",
         "no_config": "警告：未找到conf.yaml文件",
         "uncommitted": "发现未提交的更改，正在暂存...",
         "stash_error": "错误：无法暂存更改",
@@ -62,6 +63,9 @@ TEXTS = {
 
 是否继续？(y/n): """,
         "abort_upgrade": "升级已取消",
+        "merged_config_success": "新增配置项已合并:",
+        "merged_config_none": "未发现新增配置项。",
+        "merge_failed": "配置合并失败: {error}",
     },
     "en": {
         "welcome_message": "Auto-Upgrade Script v.0.1.0\nOpen-LLM-VTuber upgrade script - This script is highly experimental and may not work as expected.",
@@ -69,6 +73,7 @@ TEXTS = {
         "invalid_lang": "Invalid language selection, using English as default",
         "not_git_repo": "Error: Current directory is not a git repository. Please run this script inside the Open-LLM-VTuber directory.\nAlternatively, it is likely that the Open-LLM-VTuber you downloaded does not contain the .git folder (this can happen if you downloaded a zip archive instead of using git clone), in which case you cannot upgrade using this script.",
         "backup_config": "Backing up config file to: {}",
+        "backup_user_config": "Backing up {user_conf} to {backup_conf}",
         "no_config": "Warning: conf.yaml not found",
         "uncommitted": "Found uncommitted changes, stashing...",
         "stash_error": "Error: Unable to stash changes",
@@ -94,6 +99,9 @@ This script will perform the following operations:
 
 Continue? (y/n): """,
         "abort_upgrade": "Upgrade aborted",
+        "merged_config_success": "Merged new configuration items:",
+        "merged_config_none": "No new configuration items found.",
+        "merge_failed": "Configuration merge failed: {error}",
     },
 }
 
@@ -220,6 +228,39 @@ def main():
             if not success:
                 print(colors.red(f"Failed to restore changes: {restore_output}"))
         sys.exit(1)
+
+    # After successful pull and before restoring stashed changes:
+    # Backup and merge configuration
+    user_conf = "conf.yaml"
+    backup_conf = "conf.yaml.bak"
+    default_template = (
+        "config_templates/conf.CN.default.yaml"
+        if lang == "zh"
+        else "config_templates/conf.default.yaml"
+    )
+    if os.path.exists(user_conf):
+        print(
+            colors.cyan(
+                texts["backup_user_config"].format(
+                    user_conf=user_conf, backup_conf=backup_conf
+                )
+            )
+        )
+        shutil.copy2(user_conf, backup_conf)
+        # Merge configurations using merge_configs.py module
+        try:
+            from merge_configs import merge_configs
+
+            # Pass lang to merge_configs so its messages follow the same locale
+            new_keys = merge_configs(user_conf, default_template, lang=lang)
+            if new_keys:
+                print(colors.green(texts["merged_config_success"]))
+                for key in new_keys:
+                    print(colors.green(f"  - {key}"))
+            else:
+                print(colors.green(texts["merged_config_none"]))
+        except Exception as e:
+            print(colors.red(texts["merge_failed"].format(error=e)))
 
     # 恢复暂存的更改
     if has_changes:
