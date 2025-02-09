@@ -3,7 +3,7 @@ authors = ["t41372 <mytim710@gmail.com>", "ylxmf <ethanelift@gmail.com>"]
 channels = ["conda-forge"]
 description = "Talk to any LLM with hands-free voice interaction, voice interruption, and Live2D taking face running locally across platforms"
 name = "Open-LLM-VTuber"
-platforms = ["win-64"]
+platforms = ["win-64", "linux-64"]
 version = "1.0.3"
 
 [tasks]
