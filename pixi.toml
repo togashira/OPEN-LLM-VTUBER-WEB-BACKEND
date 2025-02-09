@@ -1,0 +1,51 @@
+[project]
+authors = ["t41372 <mytim710@gmail.com>", "ylxmf <ethanelift@gmail.com>"]
+channels = ["conda-forge"]
+description = "Talk to any LLM with hands-free voice interaction, voice interruption, and Live2D taking face running locally across platforms"
+name = "Open-LLM-VTuber"
+platforms = ["win-64"]
+version = "1.0.3"
+
+[tasks]
+
+[dependencies]
+python = "<3.13"
+cudatoolkit = { version = "==11.8", channel = "conda-forge" }
+cudnn = { version = "<9", channel = "conda-forge" }
+
+[pypi-dependencies]
+azure-cognitiveservices-speech = ">=1.41.1"
+chardet = ">=5.2.0"
+edge-tts = ">=7.0.0"
+fastapi = ">=0.115.6"
+httpx = ">=0.28.1"
+langdetect = ">=1.0.9"
+loguru = ">=0.7.2"
+numpy = ">=1.26.4,<2"
+pydub = ">=0.25.1"
+pysbd = ">=0.3.4"
+pyyaml = ">=6.0.2"
+requests = ">=2.32.3"
+scipy = ">=1.14.1"
+soundfile = ">=0.12.1"
+tomli = ">=2.2.1"
+tqdm = ">=4.67.1"
+websocket-client = ">=1.8.0"
+uvicorn = { version = ">=0.34.0, <0.35", extras = ["standard"] }
+pip = ">=25.0, <26"
+onnxruntime-gpu = "==1.17.1"
+
+[feature.openai.pypi-dependencies]
+openai = ">=1.57.4"
+
+[feature.claude-llm.pypi-dependencies]
+anthropic = ">=0.40"
+
+[feature.pyttsx3.pypi-dependencies]
+pyttsx3 = ">=2.98"
+
+[feature.groq-asr.pypi-dependencies]
+groq = ">=0.13.0"
+
+[environments]
+all-feat = ["groq-asr", "claude-llm", "pyttsx3", "openai"]
