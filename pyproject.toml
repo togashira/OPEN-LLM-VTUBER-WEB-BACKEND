@@ -3,14 +3,13 @@ name = "open-llm-vtuber"
 version = "1.0.3"
 description = "Talk to any LLM with hands-free voice interaction, voice interruption, and Live2D taking face running locally across platforms"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "anthropic>=0.40.0",
     "azure-cognitiveservices-speech>=1.41.1",
     "chardet>=5.2.0",
     "edge-tts>=7.0.0",
     "fastapi>=0.115.6",
-    "faster-whisper>=1.1.0",
     "groq>=0.13.0",
     "httpx>=0.28.1",
     "langdetect>=1.0.9",
@@ -32,3 +31,14 @@ dependencies = [
     "uvicorn[standard]>=0.33.0",
     "websocket-client>=1.8.0",
 ]
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64"]
+
+[tool.pixi.pypi-dependencies]
+open-llm-vtuber = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+cudnn = ">=8.0,<9"
+cudatoolkit = ">=11.0,<12"
