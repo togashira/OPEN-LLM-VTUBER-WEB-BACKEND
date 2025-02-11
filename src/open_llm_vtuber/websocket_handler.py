@@ -49,6 +49,7 @@ class WSMessage(TypedDict, total=False):
     """Type definition for WebSocket messages"""
 
     type: str
+    action: Optional[str]
     text: Optional[str]
     audio: Optional[List[float]]
     images: Optional[List[str]]
@@ -85,6 +86,7 @@ class WebSocketHandler:
             "interrupt-signal": self._handle_interrupt,
             "mic-audio-data": self._handle_audio_data,
             "mic-audio-end": self._handle_conversation_trigger,
+            "unity-audio-data": self._handle_unity_audio_data,
             "text-input": self._handle_conversation_trigger,
             "ai-speak-signal": self._handle_conversation_trigger,
             "fetch-configs": self._handle_fetch_configs,
@@ -179,6 +181,7 @@ class WebSocketHandler:
             live2d_model=self.default_context_cache.live2d_model,
             asr_engine=self.default_context_cache.asr_engine,
             tts_engine=self.default_context_cache.tts_engine,
+            vad_engine=self.default_context_cache.vad_engine,
             agent_engine=self.default_context_cache.agent_engine,
             translate_engine=self.default_context_cache.translate_engine,
         )
@@ -448,6 +451,30 @@ class WebSocketHandler:
                 self.received_data_buffers[client_uid],
                 np.array(audio_data, dtype=np.float32),
             )
+
+    async def _handle_unity_audio_data(
+        self, websocket: WebSocket, client_uid: str, data: WSMessage
+    ) -> None:
+        """Handle incoming unity audio data"""
+        context = self.client_contexts[client_uid]
+        chunk = data.get("audio", [])
+        if chunk:
+            for audio_bytes in context.vad_engine.detect_speech(chunk):
+                if audio_bytes == b"<|PAUSE|>":
+                    await websocket.send_text(
+                        json.dumps({"type": "control", "text": "interrupt"})
+                    )
+                elif audio_bytes == b"<|RESUME|>":
+                    pass
+                elif len(audio_bytes) > 1024:
+                    # Detected audio activity (voice)
+                    self.received_data_buffers[client_uid] = np.append(
+                        self.received_data_buffers[client_uid],
+                        np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32),
+                    )
+                    await websocket.send_text(
+                        json.dumps({"type": "control", "text": "mic-audio-end"})
+                    )
 
     async def _handle_conversation_trigger(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
