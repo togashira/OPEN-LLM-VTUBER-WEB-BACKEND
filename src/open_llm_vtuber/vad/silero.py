@@ -1,5 +1,3 @@
-# anyasfriend/components/vad/silero_vad.py
-
 import asyncio
 from collections import deque
 from enum import Enum
@@ -77,11 +75,11 @@ class VADEngine(VADInterface):
         del audio_np
 
 
-# 定义状态枚举
+# Define state enumeration
 class State(Enum):
-    IDLE = 1  # 空闲状态，等待语音
-    ACTIVE = 2  # 语音检测状态
-    INACTIVE = 3  # 语音结束状态（静默状态）
+    IDLE = 1  # Idle state, waiting for speech
+    ACTIVE = 2  # Speech detection state 
+    INACTIVE = 3  # Speech end state (silence state)
 
 
 class StateMachine:
@@ -147,7 +145,7 @@ class StateMachine:
                     self.hit_count = 0
                     yield [], [], b"<|PAUSE|>"
             else:
-                self.hit_count = 0  # 重置计数
+                self.hit_count = 0
 
         elif self.state == State.ACTIVE:
             self.update(chunk_bytes, smoothed_prob, smoothed_db)
@@ -155,7 +153,7 @@ class StateMachine:
                 smoothed_prob >= self.prob_threshold
                 and smoothed_db >= self.db_threshold
             ):
-                self.miss_count = 0  # 重置miss_count
+                self.miss_count = 0
             else:
                 self.miss_count += 1
                 if self.miss_count >= self.required_misses:
