@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import os
-import shutil
-import subprocess
 import sys
+import ctypes
+import shutil
 import locale
+import platform
+import subprocess
 
 
-# 定义基本的终端颜色代码
+# Define basic terminal color codes
 class Colors:
-    """跨平台的终端颜色支持"""
+    """Cross-platform terminal color support"""
 
     def __init__(self):
         self.use_colors = sys.platform != "win32" or os.environ.get("TERM")
@@ -26,7 +28,7 @@ class Colors:
         return f"\033[96m{text}\033[0m" if self.use_colors else text
 
 
-# 初始化颜色
+# Initialize colors
 colors = Colors()
 
 # 语言字典 / Language dictionary
@@ -106,30 +108,68 @@ Continue? (y/n): """,
 }
 
 
+
 def get_system_language():
-    """获取系统语言/Get system language"""
-    try:
-        # 使用推荐的新方法替代已废弃的getdefaultlocale()
-        locale.setlocale(locale.LC_ALL, "")
-        sys_lang = locale.getlocale()[0]
-        return "zh" if sys_lang and sys_lang.startswith("zh") else "en"
-    except Exception as e:
-        print(f"Failed to get system language, default to english: {str(e)}")
-        return "en"
+    """Get system language using a combination of methods."""
+
+    # Try to get the current locale
+    current_locale = locale.getlocale(locale.LC_ALL)[0]
+    if current_locale:
+        lang = current_locale.split('_')[0]
+        if lang.startswith('zh'):
+            return 'zh'
+
+    # If locale.getlocale() fails, use platform-specific APIs
+    os_name = platform.system()
+
+    if os_name == 'Windows':
+        try:
+            # Use Windows API to get the UI language
+            windll = ctypes.windll.kernel32
+            ui_lang = windll.GetUserDefaultUILanguage()
+            lang_code = locale.windows_locale.get(ui_lang)
+            if lang_code:
+                lang = lang_code.split('_')[0]
+                if lang.startswith('zh'):
+                    return 'zh'
+        except Exception:
+            pass
+
+    elif os_name == 'Darwin':  # macOS
+        try:
+            # Use defaults command to get the AppleLocale
+            result = subprocess.run(['defaults', 'read', '-g', 'AppleLocale'], capture_output=True, text=True)
+            lang = result.stdout.strip().split('_')[0]
+            if lang.startswith('zh'):
+                return 'zh'
+        except Exception:
+            pass
+
+    elif os_name == 'Linux':
+        # Check the LANG environment variable
+        lang = os.environ.get('LANG')
+        if lang:
+            lang = lang.split('_')[0]
+            if lang.startswith('zh'):
+                return 'zh'
+
+    # Fallback to using locale.getpreferredencoding()
+    encoding = locale.getpreferredencoding()
+    if encoding.lower() in ('cp936', 'gbk', 'big5'):
+        return 'zh'
+
+    return 'en'
 
 
 def select_language():
-    """选择语言/Select language"""
-    default_lang = get_system_language()
-    try:
-        lang = input(TEXTS["en"]["lang_select"] + " ").lower()
-        return lang if lang in ["zh", "en"] else default_lang
-    except Exception:
-        return default_lang
+    """Select language based on command-line argument or system language"""
+    if len(sys.argv) > 1 and sys.argv[1].lower() in ["zh", "en"]:
+        return sys.argv[1].lower()
+    return get_system_language()
 
 
 def run_command(command):
-    """运行shell命令并返回结果/Run shell command and return result"""
+    """Run shell command and return result"""
     try:
         result = subprocess.run(
             command,
@@ -150,19 +190,8 @@ def run_command(command):
         return False, f"Unexpected error: {str(e)}"
 
 
-def backup_config():
-    """备份conf.yaml文件/Backup conf.yaml file"""
-    backup_path = "conf.yaml.backup"
-
-    if os.path.exists("conf.yaml"):
-        print(colors.green(TEXTS["en"]["backup_config"].format(backup_path)))
-        shutil.copy2("conf.yaml", backup_path)
-        return True
-    return False
-
-
 def check_git_installed():
-    """检查是否安装了Git/Check if Git is installed"""
+    """Check if Git is installed"""
     command = "where git" if sys.platform == "win32" else "which git"
     try:
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
@@ -178,34 +207,30 @@ def main():
     lang = select_language()
     texts = TEXTS[lang]
 
-    # 检查Git是否已安装
+    # Check if Git is installed
     if not check_git_installed():
         print(colors.red(texts["git_not_found"]))
         sys.exit(1)
 
-    # 显示操作预览并请求确认
+    # Show operation preview and request confirmation
     response = input(colors.yellow(texts["operation_preview"])).lower()
     if response != "y":
         print(colors.yellow(texts["abort_upgrade"]))
         sys.exit(0)
 
-    # 检查是否在git仓库中
+    # Check if inside a git repository
     success, error_msg = run_command("git rev-parse --is-inside-work-tree")
     if not success:
         print(colors.red(texts["not_git_repo"]))
         print(colors.red(f"Error details: {error_msg}"))
         sys.exit(1)
 
-    # 检查是否有未提交的更改
+    # Check if there are uncommitted changes
     success, changes = run_command("git status --porcelain")
     if not success:
         print(colors.red(f"Failed to check git status: {changes}"))
         sys.exit(1)
     has_changes = bool(changes.strip())
-
-    # 备份配置文件
-    if not backup_config():
-        print(colors.yellow(texts["no_config"]))
 
     if has_changes:
         print(colors.yellow(texts["uncommitted"]))
@@ -216,7 +241,7 @@ def main():
             sys.exit(1)
         print(colors.green(texts["changes_stashed"]))
 
-    # 更新代码
+    # Update code
     print(colors.cyan(texts["pulling"]))
     success, output = run_command("git pull")
     if not success:
@@ -234,7 +259,7 @@ def main():
     user_conf = "conf.yaml"
     backup_conf = "conf.yaml.bak"
     default_template = (
-        "config_templates/conf.CN.default.yaml"
+        "config_templates/conf.ZH.default.yaml"
         if lang == "zh"
         else "config_templates/conf.default.yaml"
     )
@@ -262,7 +287,7 @@ def main():
         except Exception as e:
             print(colors.red(texts["merge_failed"].format(error=e)))
 
-    # 恢复暂存的更改
+    # Restore stashed changes
     if has_changes:
         print(colors.yellow(texts["restoring"]))
         success, output = run_command("git stash pop")
