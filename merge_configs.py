@@ -37,12 +37,33 @@ def merge_configs(
 
     merged = merge(user_config, default_config)
 
+    # Update conf_version from default_config without overriding other user settings
+    version_change_string = "conf_version: " + (
+        "conf_version" in user_config["system_config"]
+        and user_config["system_config"]["conf_version"]
+    )
+
+    if (
+        "system_config" in default_config
+        and "conf_version" in default_config["system_config"]
+    ):
+        merged.setdefault("system_config", {})
+        merged["system_config"]["conf_version"] = default_config["system_config"][
+            "conf_version"
+        ]
+        version_change_string = (
+            version_change_string
+            + " -> "
+            + default_config["system_config"]["conf_version"]
+        )
+
     with open(user_path, "w") as f:
         yaml.dump(merged, f)
 
     # Write new keys to upgrade log using multilingual messages
     texts = TEXTS_MERGE.get(lang, TEXTS_MERGE["en"])
     with open(log_path, "a") as log:
+        log.write(version_change_string + "\n")
         for key in new_keys:
             log.write(texts["new_config_item"].format(key=key))
     return new_keys

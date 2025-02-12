@@ -6,6 +6,8 @@ import shutil
 import locale
 import platform
 import subprocess
+from merge_configs import merge_configs
+from datetime import datetime
 
 
 # Define basic terminal color codes
@@ -38,9 +40,9 @@ TEXTS = {
         "lang_select": "请选择语言/Please select language (zh/en):",
         "invalid_lang": "无效的语言选择，使用英文作为默认语言",
         "not_git_repo": "错误：当前目录不是git仓库。请进入 Open-LLM-VTuber 目录后再运行此脚本。\n当然，更有可能的是你下载的Open-LLM-VTuber不包含.git文件夹 (如果你是透过下载压缩包而非使用 git clone 命令下载的话可能会造成这种情况)，这种情况下目前无法用脚本升级。",
-        "backup_config": "备份配置文件到: {}",
         "backup_user_config": "正在备份 {user_conf} 到 {backup_conf}",
         "no_config": "警告：未找到conf.yaml文件",
+        "copy_default_config": "正在从模板复制默认配置",
         "uncommitted": "发现未提交的更改，正在暂存...",
         "stash_error": "错误：无法暂存更改",
         "changes_stashed": "更改已暂存",
@@ -63,7 +65,7 @@ TEXTS = {
 3. 从远程仓库拉取最新代码 (git pull)
 4. 尝试恢复之前暂存的更改 (git stash pop)
 
-是否继续？(y/n): """,
+是否继续？(y/N): """,
         "abort_upgrade": "升级已取消",
         "merged_config_success": "新增配置项已合并:",
         "merged_config_none": "未发现新增配置项。",
@@ -74,9 +76,9 @@ TEXTS = {
         "lang_select": "请选择语言/Please select language (zh/en):",
         "invalid_lang": "Invalid language selection, using English as default",
         "not_git_repo": "Error: Current directory is not a git repository. Please run this script inside the Open-LLM-VTuber directory.\nAlternatively, it is likely that the Open-LLM-VTuber you downloaded does not contain the .git folder (this can happen if you downloaded a zip archive instead of using git clone), in which case you cannot upgrade using this script.",
-        "backup_config": "Backing up config file to: {}",
         "backup_user_config": "Backing up {user_conf} to {backup_conf}",
         "no_config": "Warning: conf.yaml not found",
+        "copy_default_config": "Copying default configuration from template",
         "uncommitted": "Found uncommitted changes, stashing...",
         "stash_error": "Error: Unable to stash changes",
         "changes_stashed": "Changes stashed",
@@ -99,7 +101,7 @@ This script will perform the following operations:
 3. Pull latest code from remote repository (git pull)
 4. Attempt to restore previously stashed changes (git stash pop)
 
-Continue? (y/n): """,
+Continue? (y/N): """,
         "abort_upgrade": "Upgrade aborted",
         "merged_config_success": "Merged new configuration items:",
         "merged_config_none": "No new configuration items found.",
@@ -108,57 +110,60 @@ Continue? (y/n): """,
 }
 
 
-
 def get_system_language():
     """Get system language using a combination of methods."""
 
     # Try to get the current locale
     current_locale = locale.getlocale(locale.LC_ALL)[0]
     if current_locale:
-        lang = current_locale.split('_')[0]
-        if lang.startswith('zh'):
-            return 'zh'
+        lang = current_locale.split("_")[0]
+        if lang.startswith("zh"):
+            return "zh"
 
     # If locale.getlocale() fails, use platform-specific APIs
     os_name = platform.system()
 
-    if os_name == 'Windows':
+    if os_name == "Windows":
         try:
             # Use Windows API to get the UI language
             windll = ctypes.windll.kernel32
             ui_lang = windll.GetUserDefaultUILanguage()
             lang_code = locale.windows_locale.get(ui_lang)
             if lang_code:
-                lang = lang_code.split('_')[0]
-                if lang.startswith('zh'):
-                    return 'zh'
+                lang = lang_code.split("_")[0]
+                if lang.startswith("zh"):
+                    return "zh"
         except Exception:
             pass
 
-    elif os_name == 'Darwin':  # macOS
+    elif os_name == "Darwin":  # macOS
         try:
             # Use defaults command to get the AppleLocale
-            result = subprocess.run(['defaults', 'read', '-g', 'AppleLocale'], capture_output=True, text=True)
-            lang = result.stdout.strip().split('_')[0]
-            if lang.startswith('zh'):
-                return 'zh'
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleLocale"],
+                capture_output=True,
+                text=True,
+            )
+            lang = result.stdout.strip().split("_")[0]
+            if lang.startswith("zh"):
+                return "zh"
         except Exception:
             pass
 
-    elif os_name == 'Linux':
+    elif os_name == "Linux":
         # Check the LANG environment variable
-        lang = os.environ.get('LANG')
+        lang = os.environ.get("LANG")
         if lang:
-            lang = lang.split('_')[0]
-            if lang.startswith('zh'):
-                return 'zh'
+            lang = lang.split("_")[0]
+            if lang.startswith("zh"):
+                return "zh"
 
     # Fallback to using locale.getpreferredencoding()
     encoding = locale.getpreferredencoding()
-    if encoding.lower() in ('cp936', 'gbk', 'big5'):
-        return 'zh'
+    if encoding.lower() in ("cp936", "gbk", "big5"):
+        return "zh"
 
-    return 'en'
+    return "en"
 
 
 def select_language():
@@ -198,6 +203,13 @@ def check_git_installed():
         return result.returncode == 0
     except subprocess.SubprocessError:
         return False
+
+
+def upgrade_config(user_config_path: str, default_config_path: str, lang: str = "en"):
+    log_path = f"./logs/upgrade_{datetime.now().strftime('%Y-%m-%d-%H-%M')}.log"
+    return merge_configs(
+        user_config_path, default_config_path, log_path=log_path, lang=lang
+    )
 
 
 def main():
@@ -257,12 +269,13 @@ def main():
     # After successful pull and before restoring stashed changes:
     # Backup and merge configuration
     user_conf = "conf.yaml"
-    backup_conf = "conf.yaml.bak"
+    backup_conf = "conf.yaml.backup"
     default_template = (
         "config_templates/conf.ZH.default.yaml"
         if lang == "zh"
         else "config_templates/conf.default.yaml"
     )
+
     if os.path.exists(user_conf):
         print(
             colors.cyan(
@@ -274,10 +287,7 @@ def main():
         shutil.copy2(user_conf, backup_conf)
         # Merge configurations using merge_configs.py module
         try:
-            from merge_configs import merge_configs
-
-            # Pass lang to merge_configs so its messages follow the same locale
-            new_keys = merge_configs(user_conf, default_template, lang=lang)
+            new_keys = upgrade_config(user_conf, default_template, lang=lang)
             if new_keys:
                 print(colors.green(texts["merged_config_success"]))
                 for key in new_keys:
@@ -286,6 +296,10 @@ def main():
                 print(colors.green(texts["merged_config_none"]))
         except Exception as e:
             print(colors.red(texts["merge_failed"].format(error=e)))
+    else:
+        print(colors.yellow(texts["no_config"]))
+        print(colors.yellow(texts["copy_default_config"]))
+        shutil.copy2(default_template, user_conf)
 
     # Restore stashed changes
     if has_changes:
