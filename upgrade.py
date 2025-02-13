@@ -4,36 +4,56 @@ import sys
 import ctypes
 import shutil
 import locale
+import logging
 import platform
 import subprocess
-from merge_configs import merge_configs
 from datetime import datetime
+from merge_configs import merge_configs
 
 
-# Define basic terminal color codes
-class Colors:
-    """Cross-platform terminal color support"""
+# Remove Colors class and configure logging
+def configure_logging():
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    log_filename = f"./logs/upgrade_{datetime.now().strftime('%Y-%m-%d-%H-%M')}.log"
+    logger = logging.getLogger("upgrade")
+    logger.setLevel(logging.DEBUG)
 
-    def __init__(self):
-        self.use_colors = sys.platform != "win32" or os.environ.get("TERM")
+    # File handler (no colors)
+    file_handler = logging.FileHandler(log_filename)
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
 
-    def red(self, text):
-        return f"\033[91m{text}\033[0m" if self.use_colors else text
+    # Colored console handler
+    class ColoredFormatter(logging.Formatter):
+        COLORS = {
+            logging.DEBUG: "\033[96m",  # cyan
+            logging.INFO: "\033[92m",  # green
+            logging.WARNING: "\033[93m",  # yellow
+            logging.ERROR: "\033[91m",  # red
+            logging.CRITICAL: "\033[95m",  # magenta
+        }
+        RESET = "\033[0m"
 
-    def green(self, text):
-        return f"\033[92m{text}\033[0m" if self.use_colors else text
+        def format(self, record):
+            color = self.COLORS.get(record.levelno, self.RESET)
+            message = super().format(record)
+            return f"{color}{message}{self.RESET}"
 
-    def yellow(self, text):
-        return f"\033[93m{text}\033[0m" if self.use_colors else text
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.DEBUG)
+    stream_formatter = ColoredFormatter("[%(levelname)s] %(message)s")
+    stream_handler.setFormatter(stream_formatter)
+    logger.addHandler(stream_handler)
 
-    def cyan(self, text):
-        return f"\033[96m{text}\033[0m" if self.use_colors else text
+    return logger
 
 
-# Initialize colors
-colors = Colors()
+logger = configure_logging()
 
-# 语言字典 / Language dictionary
+# Language dictionaries and other constants
 TEXTS = {
     "zh": {
         "welcome_message": "Auto-Upgrade Script v.0.1.0\nOpen-LLM-VTuber 升级脚本 - 此脚本仍在实验阶段，可能无法按预期工作。",
@@ -206,64 +226,61 @@ def check_git_installed():
 
 
 def upgrade_config(user_config_path: str, default_config_path: str, lang: str = "en"):
-    log_path = f"./logs/upgrade_{datetime.now().strftime('%Y-%m-%d-%H-%M')}.log"
-    return merge_configs(
-        user_config_path, default_config_path, log_path=log_path, lang=lang
-    )
+    return merge_configs(user_config_path, default_config_path, lang=lang)
 
 
 def main():
     global texts
-    print(colors.cyan(TEXTS["en"]["welcome_message"]))
+    logger.info(TEXTS["en"]["welcome_message"])
 
     lang = select_language()
     texts = TEXTS[lang]
 
     # Check if Git is installed
     if not check_git_installed():
-        print(colors.red(texts["git_not_found"]))
+        logger.error(texts["git_not_found"])
         sys.exit(1)
 
     # Show operation preview and request confirmation
-    response = input(colors.yellow(texts["operation_preview"])).lower()
+    response = input("\033[93m" + texts["operation_preview"] + "\033[0m").lower()
     if response != "y":
-        print(colors.yellow(texts["abort_upgrade"]))
+        logger.warning(texts["abort_upgrade"])
         sys.exit(0)
 
     # Check if inside a git repository
     success, error_msg = run_command("git rev-parse --is-inside-work-tree")
     if not success:
-        print(colors.red(texts["not_git_repo"]))
-        print(colors.red(f"Error details: {error_msg}"))
+        logger.error(texts["not_git_repo"])
+        logger.error(f"Error details: {error_msg}")
         sys.exit(1)
 
     # Check if there are uncommitted changes
     success, changes = run_command("git status --porcelain")
     if not success:
-        print(colors.red(f"Failed to check git status: {changes}"))
+        logger.error(f"Failed to check git status: {changes}")
         sys.exit(1)
     has_changes = bool(changes.strip())
 
     if has_changes:
-        print(colors.yellow(texts["uncommitted"]))
+        logger.warning(texts["uncommitted"])
         success, output = run_command("git stash")
         if not success:
-            print(colors.red(texts["stash_error"]))
-            print(colors.red(f"Error details: {output}"))
+            logger.error(texts["stash_error"])
+            logger.error(f"Error details: {output}")
             sys.exit(1)
-        print(colors.green(texts["changes_stashed"]))
+        logger.info(texts["changes_stashed"])
 
     # Update code
-    print(colors.cyan(texts["pulling"]))
+    logger.info(texts["pulling"])
     success, output = run_command("git pull")
     if not success:
-        print(colors.red(texts["pull_error"]))
-        print(colors.red(f"Error details: {output}"))
+        logger.error(texts["pull_error"])
+        logger.error(f"Error details: {output}")
         if has_changes:
-            print(colors.yellow(texts["restoring"]))
+            logger.warning(texts["restoring"])
             success, restore_output = run_command("git stash pop")
             if not success:
-                print(colors.red(f"Failed to restore changes: {restore_output}"))
+                logger.error(f"Failed to restore changes: {restore_output}")
         sys.exit(1)
 
     # After successful pull and before restoring stashed changes:
@@ -277,11 +294,9 @@ def main():
     )
 
     if os.path.exists(user_conf):
-        print(
-            colors.cyan(
-                texts["backup_user_config"].format(
-                    user_conf=user_conf, backup_conf=backup_conf
-                )
+        logger.info(
+            texts["backup_user_config"].format(
+                user_conf=user_conf, backup_conf=backup_conf
             )
         )
         shutil.copy2(user_conf, backup_conf)
@@ -289,34 +304,34 @@ def main():
         try:
             new_keys = upgrade_config(user_conf, default_template, lang=lang)
             if new_keys:
-                print(colors.green(texts["merged_config_success"]))
+                logger.info(texts["merged_config_success"])
                 for key in new_keys:
-                    print(colors.green(f"  - {key}"))
+                    logger.info(f"  - {key}")
             else:
-                print(colors.green(texts["merged_config_none"]))
+                logger.info(texts["merged_config_none"])
         except Exception as e:
-            print(colors.red(texts["merge_failed"].format(error=e)))
+            logger.error(texts["merge_failed"].format(error=e))
     else:
-        print(colors.yellow(texts["no_config"]))
-        print(colors.yellow(texts["copy_default_config"]))
+        logger.warning(texts["no_config"])
+        logger.warning(texts["copy_default_config"])
         shutil.copy2(default_template, user_conf)
 
     # Restore stashed changes
     if has_changes:
-        print(colors.yellow(texts["restoring"]))
+        logger.warning(texts["restoring"])
         success, output = run_command("git stash pop")
         if not success:
-            print(colors.red(texts["conflict_warning"]))
-            print(colors.red(f"Error details: {output}"))
-            print(colors.yellow(texts["manual_resolve"]))
-            print(colors.cyan(texts["stash_list"]))
-            print(colors.cyan(texts["stash_pop"]))
+            logger.error(texts["conflict_warning"])
+            logger.error(f"Error details: {output}")
+            logger.warning(texts["manual_resolve"])
+            logger.info(texts["stash_list"])
+            logger.info(texts["stash_pop"])
             sys.exit(1)
 
-    print(colors.green("\n" + texts["upgrade_complete"]))
-    print(colors.cyan(texts["check_config"]))
-    print(colors.cyan(texts["resolve_conflicts"]))
-    print(colors.cyan(texts["check_backup"]))
+    logger.info("\n" + texts["upgrade_complete"])
+    logger.info(texts["check_config"])
+    logger.info(texts["resolve_conflicts"])
+    logger.info(texts["check_backup"])
 
 
 if __name__ == "__main__":

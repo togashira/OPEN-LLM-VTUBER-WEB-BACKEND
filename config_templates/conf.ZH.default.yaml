@@ -357,6 +357,7 @@ character_config:
       speed: 1.0 # 语速（1.0 为正常）
       debug: false # 启用调试模式（True/False）
 
+
   # =================== Voice Activity Detection ===================
   vad_config:
     vad_model: "silero_vad"

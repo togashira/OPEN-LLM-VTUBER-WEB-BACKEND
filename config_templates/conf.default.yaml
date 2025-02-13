@@ -362,8 +362,8 @@ character_config:
       speed: 1.0 # Speech speed (1.0 is normal)
       debug: false # Enable debug mode (True/False)
 
-  # =================== Voice Activity Detection ===================
 
+  # =================== Voice Activity Detection ===================
   vad_config:
     vad_model: "silero_vad"
 

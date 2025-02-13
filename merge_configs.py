@@ -1,13 +1,16 @@
 import sys
+import logging
 from ruamel.yaml import YAML
+
+logger = logging.getLogger(__name__)
 
 # Multilingual texts for merge_configs log messages
 TEXTS_MERGE = {
     "zh": {
-        "new_config_item": "[信息] 新增配置项: {key}\n",
+        "new_config_item": "[信息] 新增配置项: {key}",
     },
     "en": {
-        "new_config_item": "[INFO] New config item: {key}\n",
+        "new_config_item": "[INFO] New config item: {key}",
     },
 }
 
@@ -38,10 +41,12 @@ def merge_configs(
     merged = merge(user_config, default_config)
 
     # Update conf_version from default_config without overriding other user settings
-    version_change_string = "conf_version: " + (
-        "conf_version" in user_config["system_config"]
-        and user_config["system_config"]["conf_version"]
+    version_value = (
+        user_config["system_config"].get("conf_version")
+        if "system_config" in user_config
+        else ""
     )
+    version_change_string = "conf_version: " + version_value
 
     if (
         "system_config" in default_config
@@ -60,12 +65,11 @@ def merge_configs(
     with open(user_path, "w") as f:
         yaml.dump(merged, f)
 
-    # Write new keys to upgrade log using multilingual messages
+    # Log upgrade details (replacing manual file writing)
     texts = TEXTS_MERGE.get(lang, TEXTS_MERGE["en"])
-    with open(log_path, "a") as log:
-        log.write(version_change_string + "\n")
-        for key in new_keys:
-            log.write(texts["new_config_item"].format(key=key))
+    logger.info(version_change_string)
+    for key in new_keys:
+        logger.info(texts["new_config_item"].format(key=key))
     return new_keys
 
 
