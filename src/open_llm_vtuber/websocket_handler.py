@@ -176,8 +176,12 @@ class WebSocketHandler:
         session_service_context = ServiceContext()
         session_service_context.load_cache(
             config=self.default_context_cache.config.model_copy(deep=True),
-            system_config=self.default_context_cache.system_config.model_copy(deep=True),
-            character_config=self.default_context_cache.character_config.model_copy(deep=True), 
+            system_config=self.default_context_cache.system_config.model_copy(
+                deep=True
+            ),
+            character_config=self.default_context_cache.character_config.model_copy(
+                deep=True
+            ),
             live2d_model=self.default_context_cache.live2d_model,
             asr_engine=self.default_context_cache.asr_engine,
             tts_engine=self.default_context_cache.tts_engine,

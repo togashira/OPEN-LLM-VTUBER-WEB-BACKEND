@@ -1,12 +1,7 @@
 import os
 import sys
-import shutil
-import locale
 import atexit
-import ctypes
 import argparse
-import platform
-import subprocess
 from pathlib import Path
 import tomli
 import uvicorn
@@ -59,7 +54,6 @@ def parse_args():
 def init_config():
     # If user config does not exist, copy from template based on system language
     sync_user_config(logger=logger, lang=select_language())
-    
 
 
 @logger.catch
