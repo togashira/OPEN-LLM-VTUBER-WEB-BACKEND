@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import sys
 import ctypes
@@ -8,7 +7,10 @@ import logging
 import platform
 import subprocess
 from datetime import datetime
-from merge_configs import merge_configs
+from merge_configs import merge_configs, compare_configs
+
+USER_CONF = "conf.yaml"
+BACKUP_CONF = "conf.yaml.backup"
 
 
 # Remove Colors class and configure logging
@@ -51,8 +53,6 @@ def configure_logging():
     return logger
 
 
-logger = configure_logging()
-
 # Language dictionaries and other constants
 TEXTS = {
     "zh": {
@@ -61,6 +61,7 @@ TEXTS = {
         "invalid_lang": "无效的语言选择，使用英文作为默认语言",
         "not_git_repo": "错误：当前目录不是git仓库。请进入 Open-LLM-VTuber 目录后再运行此脚本。\n当然，更有可能的是你下载的Open-LLM-VTuber不包含.git文件夹 (如果你是透过下载压缩包而非使用 git clone 命令下载的话可能会造成这种情况)，这种情况下目前无法用脚本升级。",
         "backup_user_config": "正在备份 {user_conf} 到 {backup_conf}",
+        "configs_up_to_date": "[DEBUG] 用户配置已是最新。",
         "no_config": "警告：未找到conf.yaml文件",
         "copy_default_config": "正在从模板复制默认配置",
         "uncommitted": "发现未提交的更改，正在暂存...",
@@ -97,6 +98,7 @@ TEXTS = {
         "invalid_lang": "Invalid language selection, using English as default",
         "not_git_repo": "Error: Current directory is not a git repository. Please run this script inside the Open-LLM-VTuber directory.\nAlternatively, it is likely that the Open-LLM-VTuber you downloaded does not contain the .git folder (this can happen if you downloaded a zip archive instead of using git clone), in which case you cannot upgrade using this script.",
         "backup_user_config": "Backing up {user_conf} to {backup_conf}",
+        "configs_up_to_date": "[DEBUG] User configuration is up-to-date.",
         "no_config": "Warning: conf.yaml not found",
         "copy_default_config": "Copying default configuration from template",
         "uncommitted": "Found uncommitted changes, stashing...",
@@ -225,40 +227,74 @@ def check_git_installed():
         return False
 
 
-def upgrade_config(user_config_path: str, default_config_path: str, lang: str = "en"):
-    return merge_configs(user_config_path, default_config_path, lang=lang)
+def sync_user_config(logger, lang: str = "en") -> None:
+    texts = TEXTS[lang]
+    default_template = (
+        "config_templates/conf.ZH.default.yaml"
+        if lang == "zh"
+        else "config_templates/conf.default.yaml"
+    )
+
+    if os.path.exists(USER_CONF):
+        # Compare configurations and only merge if necessary.
+        if not compare_configs(
+            user_path=USER_CONF, default_path=default_template, lang=lang
+        ):
+            try:
+                # backup first
+                logger.info(
+                    texts["backup_user_config"].format(
+                        user_conf=USER_CONF, backup_conf=BACKUP_CONF
+                    )
+                )
+                shutil.copy2(USER_CONF, BACKUP_CONF)
+
+                # merge
+                new_keys = merge_configs(
+                    user_path=USER_CONF, default_path=default_template, lang=lang
+                )
+                if new_keys:
+                    logger.info(texts["merged_config_success"])
+                    for key in new_keys:
+                        logger.info(f"  - {key}")
+                else:
+                    logger.info(texts["merged_config_none"])
+            except Exception as e:
+                logger.error(texts["merge_failed"].format(error=e))
+        else:
+            logger.info(texts["configs_up_to_date"])
+    else:
+        logger.warning(texts["no_config"])
+        logger.warning(texts["copy_default_config"])
+        shutil.copy2(default_template, USER_CONF)
 
 
-def main():
-    global texts
+def perform_upgrade(custom_logger=None):
+    logger = custom_logger or configure_logging()
+
     logger.info(TEXTS["en"]["welcome_message"])
-
     lang = select_language()
     texts = TEXTS[lang]
 
-    # Check if Git is installed
     if not check_git_installed():
         logger.error(texts["git_not_found"])
-        sys.exit(1)
+        return
 
-    # Show operation preview and request confirmation
     response = input("\033[93m" + texts["operation_preview"] + "\033[0m").lower()
     if response != "y":
         logger.warning(texts["abort_upgrade"])
-        sys.exit(0)
+        return
 
-    # Check if inside a git repository
     success, error_msg = run_command("git rev-parse --is-inside-work-tree")
     if not success:
         logger.error(texts["not_git_repo"])
         logger.error(f"Error details: {error_msg}")
-        sys.exit(1)
+        return
 
-    # Check if there are uncommitted changes
     success, changes = run_command("git status --porcelain")
     if not success:
         logger.error(f"Failed to check git status: {changes}")
-        sys.exit(1)
+        return
     has_changes = bool(changes.strip())
 
     if has_changes:
@@ -267,10 +303,9 @@ def main():
         if not success:
             logger.error(texts["stash_error"])
             logger.error(f"Error details: {output}")
-            sys.exit(1)
+            return
         logger.info(texts["changes_stashed"])
 
-    # Update code
     logger.info(texts["pulling"])
     success, output = run_command("git pull")
     if not success:
@@ -281,42 +316,10 @@ def main():
             success, restore_output = run_command("git stash pop")
             if not success:
                 logger.error(f"Failed to restore changes: {restore_output}")
-        sys.exit(1)
+        return
 
-    # After successful pull and before restoring stashed changes:
-    # Backup and merge configuration
-    user_conf = "conf.yaml"
-    backup_conf = "conf.yaml.backup"
-    default_template = (
-        "config_templates/conf.ZH.default.yaml"
-        if lang == "zh"
-        else "config_templates/conf.default.yaml"
-    )
+    sync_user_config(logger=logger, lang=lang)  # merge user config
 
-    if os.path.exists(user_conf):
-        logger.info(
-            texts["backup_user_config"].format(
-                user_conf=user_conf, backup_conf=backup_conf
-            )
-        )
-        shutil.copy2(user_conf, backup_conf)
-        # Merge configurations using merge_configs.py module
-        try:
-            new_keys = upgrade_config(user_conf, default_template, lang=lang)
-            if new_keys:
-                logger.info(texts["merged_config_success"])
-                for key in new_keys:
-                    logger.info(f"  - {key}")
-            else:
-                logger.info(texts["merged_config_none"])
-        except Exception as e:
-            logger.error(texts["merge_failed"].format(error=e))
-    else:
-        logger.warning(texts["no_config"])
-        logger.warning(texts["copy_default_config"])
-        shutil.copy2(default_template, user_conf)
-
-    # Restore stashed changes
     if has_changes:
         logger.warning(texts["restoring"])
         success, output = run_command("git stash pop")
@@ -326,7 +329,7 @@ def main():
             logger.warning(texts["manual_resolve"])
             logger.info(texts["stash_list"])
             logger.info(texts["stash_pop"])
-            sys.exit(1)
+            return
 
     logger.info("\n" + texts["upgrade_complete"])
     logger.info(texts["check_config"])
@@ -335,4 +338,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    perform_upgrade()

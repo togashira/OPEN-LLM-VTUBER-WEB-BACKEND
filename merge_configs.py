@@ -14,10 +14,22 @@ TEXTS_MERGE = {
     },
 }
 
+# Multilingual texts for compare_configs log messages
+TEXTS_COMPARE = {
+    "zh": {
+        "missing_keys": "[警告] 用户配置缺少以下键，可能与默认配置不一致: {keys}",
+        "extra_keys": "[警告] 用户配置包含以下默认配置中不存在的键: {keys}",
+        "up_to_date": "[调试] 用户配置与默认配置一致。",
+    },
+    "en": {
+        "missing_keys": "[WARNING] User config is missing the following keys, which may be out-of-date: {keys}",
+        "extra_keys": "[WARNING] User config contains the following keys not present in default config: {keys}",
+        "up_to_date": "[DEBUG] User config is up-to-date with default config.",
+    },
+}
 
-def merge_configs(
-    user_path: str, default_path: str, log_path: str = "upgrade.log", lang: str = "en"
-):
+
+def merge_configs(user_path: str, default_path: str, lang: str = "en"):
     yaml = YAML()
     yaml.preserve_quotes = True
 
@@ -73,8 +85,77 @@ def merge_configs(
     return new_keys
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python merge_configs.py <user_config> <default_config>")
-        sys.exit(1)
-    merge_configs(sys.argv[1], sys.argv[2])
+def collect_all_subkeys(d, base_path):
+    """Collect all keys in the dictionary d, recursively, with base_path as the prefix."""
+    keys = []
+    for key, value in d.items():
+        current_path = f"{base_path}.{key}" if base_path else key
+        keys.append(current_path)
+        if isinstance(value, dict):
+            keys.extend(collect_all_subkeys(value, current_path))
+    return keys
+
+
+def get_missing_keys(user, default, path=""):
+    """Recursively find keys in default that are missing in user."""
+    missing = []
+    for key, default_val in default.items():
+        current_path = f"{path}.{key}" if path else key
+        if key not in user:
+            missing.append(current_path)
+        else:
+            user_val = user[key]
+            if isinstance(default_val, dict):
+                if isinstance(user_val, dict):
+                    missing.extend(
+                        get_missing_keys(user_val, default_val, current_path)
+                    )
+                else:
+                    subtree_missing = collect_all_subkeys(default_val, current_path)
+                    missing.extend(subtree_missing)
+    return missing
+
+
+def get_extra_keys(user, default, path=""):
+    """Recursively find keys in user that are not present in default."""
+    extra = []
+    for key, user_val in user.items():
+        current_path = f"{path}.{key}" if path else key
+        if key not in default:
+            subtree_extra = collect_all_subkeys(user_val, current_path)
+            extra.append(current_path)
+            extra.extend(subtree_extra)
+        else:
+            default_val = default[key]
+            if isinstance(user_val, dict) and isinstance(default_val, dict):
+                extra.extend(get_extra_keys(user_val, default_val, current_path))
+            elif isinstance(user_val, dict):
+                subtree_extra = collect_all_subkeys(user_val, current_path)
+                extra.extend(subtree_extra)
+    return extra
+
+
+def compare_configs(user_path: str, default_path: str, lang: str = "en") -> bool:
+    """Compare user and default configs, log discrepancies, and return status."""
+    yaml = YAML()
+    yaml.preserve_quotes = True
+
+    with open(user_path) as f:
+        user_config = yaml.load(f)
+    with open(default_path) as f:
+        default_config = yaml.load(f)
+
+    missing = get_missing_keys(user_config, default_config)
+    extra = get_extra_keys(user_config, default_config)
+
+    texts = TEXTS_COMPARE.get(lang, TEXTS_COMPARE["en"])
+
+    if missing:
+        logger.warning(texts["missing_keys"].format(keys=", ".join(missing)))
+        return False
+    if extra:
+        logger.warning(texts["extra_keys"].format(keys=", ".join(extra)))
+    else:
+        logger.debug(texts["up_to_date"])
+
+    return True
