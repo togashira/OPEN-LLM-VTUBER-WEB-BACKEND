@@ -5,7 +5,7 @@
 # ===========================
 # 系统设置：与服务器初始化相关的设置
 system_config:
-  conf_version: "v1.0.3" # 配置文件版本
+  conf_version: "v1.1.0-alpha.1" # 配置文件版本
   host: "localhost" # 服务器监听的地址，"0.0.0.0" 表示监听所有网络接口；如果需要安全，可以使用 "127.0.0.1"（仅本地访问）
   port: 12393 # 服务器监听的端口
   config_alts_dir: "characters" # 用于存放替代配置的目录
@@ -377,6 +377,7 @@ character_config:
     ignore_brackets: True # 从音频生成中删除中括号包住的内容
     ignore_parentheses: True # 从音频生成中删除括号包住的内容
     ignore_asterisks: True # 从音频生成中删除星号包住的内容(单双星号)
+    ignore_angle_brackets: True # 从音频生成中删除尖括号包住的内容
 
     translator_config:
       # 比如...你说话并阅读英语字幕，而 TTS 说日语之类的

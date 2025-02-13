@@ -22,6 +22,7 @@ dependencies = [
     "pyttsx3>=2.98",
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
+    "ruamel-yaml>=0.18.10",
     "ruff>=0.8.6",
     "scipy>=1.14.1",
     "sherpa-onnx>=1.10.39",
