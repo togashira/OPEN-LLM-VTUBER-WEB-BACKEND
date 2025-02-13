@@ -85,7 +85,8 @@ class CosyvoiceTTSConfig(I18nMixin):
         "seed": Description(en="Random seed", zh="随机种子"),
         "api_name": Description(en="API endpoint name", zh="API 端点名称"),
     }
-    
+
+
 class Cosyvoice2TTSConfig(I18nMixin):
     """Configuration for Cosyvoice2 TTS."""
 
@@ -122,6 +123,7 @@ class Cosyvoice2TTSConfig(I18nMixin):
         "speed": Description(en="Speech speed multiplier", zh="语速倍数"),
         "api_name": Description(en="API endpoint name", zh="API 端点名称"),
     }
+
 
 class MeloTTSConfig(I18nMixin):
     """Configuration for Melo TTS."""

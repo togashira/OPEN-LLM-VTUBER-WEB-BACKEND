@@ -1,6 +1,7 @@
 from typing import Type
 from .vad_interface import VADInterface
 
+
 class VADFactory:
     @staticmethod
     def get_vad_engine(engine_type, **kwargs) -> Type[VADInterface]:

@@ -28,18 +28,18 @@ class VADEngine(VADInterface):
         target_sr: int = 16000,
         prob_threshold: float = 0.4,
         db_threshold: int = 60,
-        required_hits: int = 3 ,
+        required_hits: int = 3,
         required_misses: int = 24,
         smoothing_window: int = 5,
     ):
         self.config = SileroVADConfig(
-            orig_sr = orig_sr,
-            target_sr = target_sr,
-            prob_threshold = prob_threshold,
-            db_threshold = db_threshold,
-            required_hits = required_hits,
-            required_misses= required_misses,
-            smoothing_window = smoothing_window,
+            orig_sr=orig_sr,
+            target_sr=target_sr,
+            prob_threshold=prob_threshold,
+            db_threshold=db_threshold,
+            required_hits=required_hits,
+            required_misses=required_misses,
+            smoothing_window=smoothing_window,
         )
         self.model = self.load_vad_model()
         self.state = StateMachine(self.config)
@@ -78,7 +78,7 @@ class VADEngine(VADInterface):
 # Define state enumeration
 class State(Enum):
     IDLE = 1  # Idle state, waiting for speech
-    ACTIVE = 2  # Speech detection state 
+    ACTIVE = 2  # Speech detection state
     INACTIVE = 3  # Speech end state (silence state)
 
 
@@ -105,7 +105,7 @@ class StateMachine:
     @classmethod
     def calculate_db(cls, audio_data: np.ndarray) -> float:
         rms = np.sqrt(np.mean(np.square(audio_data)))
-        return 20 * np.log10(rms + 1E-7) if rms > 0 else -np.inf
+        return 20 * np.log10(rms + 1e-7) if rms > 0 else -np.inf
 
     def update(self, chunk_bytes, prob, db):
         self.probs.append(prob)
@@ -224,5 +224,4 @@ async def vad_main():
 
 
 if __name__ == "__main__":
-
     asyncio.run(vad_main())

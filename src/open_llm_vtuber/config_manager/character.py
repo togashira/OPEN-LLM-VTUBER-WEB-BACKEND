@@ -24,7 +24,9 @@ class CharacterConfig(I18nMixin):
     asr_config: ASRConfig = Field(..., alias="asr_config")
     tts_config: TTSConfig = Field(..., alias="tts_config")
     vad_config: VADConfig = Field(..., alias="vad_config")
-    tts_preprocessor_config: TTSPreprocessorConfig = Field(..., alias="tts_preprocessor_config")
+    tts_preprocessor_config: TTSPreprocessorConfig = Field(
+        ..., alias="tts_preprocessor_config"
+    )
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "conf_name": Description(

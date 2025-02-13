@@ -43,7 +43,7 @@ class TTSFactory:
             )
         elif engine_type == "cosyvoice2_tts":
             from .cosyvoice2_tts import TTSEngine as Cosyvoice2TTSEngine
-            
+
             return Cosyvoice2TTSEngine(
                 client_url=kwargs.get("client_url"),
                 mode_checkbox_group=kwargs.get("mode_checkbox_group"),

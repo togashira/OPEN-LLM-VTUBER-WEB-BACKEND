@@ -133,7 +133,7 @@ class ServiceContext:
 
         # init tts from character config
         self.init_tts(config.character_config.tts_config)
-        
+
         # init vad from character config
         self.init_vad(config.character_config.vad_config)
 
