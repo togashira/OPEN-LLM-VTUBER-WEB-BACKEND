@@ -95,7 +95,7 @@ async def handle_sentence_output(
             tts_text = translate_engine.translate(tts_text)
             logger.info(f"🏃 Text after translation: '''{tts_text}'''...")
         else:
-            logger.info("🚫 No translation engine available. Skipping translation.")
+            logger.debug("🚫 No translation engine available. Skipping translation.")
 
         full_response += display_text.text
         await tts_manager.speak(

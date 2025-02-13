@@ -172,12 +172,12 @@ class WebSocketHandler:
         await websocket.send_text(json.dumps({"type": "control", "text": "start-mic"}))
 
     async def _init_service_context(self) -> ServiceContext:
-        """Initialize service context for a new session"""
+        """Initialize service context for a new session by cloning the default context"""
         session_service_context = ServiceContext()
         session_service_context.load_cache(
-            config=self.default_context_cache.config,
-            system_config=self.default_context_cache.system_config,
-            character_config=self.default_context_cache.character_config,
+            config=self.default_context_cache.config.model_copy(deep=True),
+            system_config=self.default_context_cache.system_config.model_copy(deep=True),
+            character_config=self.default_context_cache.character_config.model_copy(deep=True), 
             live2d_model=self.default_context_cache.live2d_model,
             asr_engine=self.default_context_cache.asr_engine,
             tts_engine=self.default_context_cache.tts_engine,
