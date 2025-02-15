@@ -1,5 +1,6 @@
 import logging
 from ruamel.yaml import YAML
+from src.open_llm_vtuber.config_manager.utils import load_text_file_with_guess_encoding
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +33,8 @@ def merge_configs(user_path: str, default_path: str, lang: str = "en"):
     yaml = YAML()
     yaml.preserve_quotes = True
 
-    with open(user_path) as f:
-        user_config = yaml.load(f)
-    with open(default_path) as f:
-        default_config = yaml.load(f)
+    user_config = yaml.load(load_text_file_with_guess_encoding(user_path))
+    default_config = yaml.load(load_text_file_with_guess_encoding(default_path))
 
     new_keys = []
 
@@ -139,10 +138,8 @@ def compare_configs(user_path: str, default_path: str, lang: str = "en") -> bool
     yaml = YAML()
     yaml.preserve_quotes = True
 
-    with open(user_path) as f:
-        user_config = yaml.load(f)
-    with open(default_path) as f:
-        default_config = yaml.load(f)
+    user_config = yaml.load(load_text_file_with_guess_encoding(user_path))
+    default_config = yaml.load(load_text_file_with_guess_encoding(default_path))
 
     missing = get_missing_keys(user_config, default_config)
     extra = get_extra_keys(user_config, default_config)
