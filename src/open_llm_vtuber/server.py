@@ -49,6 +49,15 @@ class WebSocketServer:
             create_routes(default_context_cache=default_context_cache)
         )
 
+        # Mount cache directory first (to ensure audio file access)
+        if not os.path.exists("cache"):
+            os.makedirs("cache")
+        self.app.mount(
+            "/cache",
+            StaticFiles(directory="cache"),
+            name="cache",
+        )
+
         # Mount static files
         self.app.mount(
             "/live2d-models",
@@ -65,8 +74,19 @@ class WebSocketServer:
             AvatarStaticFiles(directory="avatars"),
             name="avatars",
         )
+
+        # Mount web tool directory separately from frontend
         self.app.mount(
-            "/", CustomStaticFiles(directory="./frontend", html=True), name="frontend"
+            "/web-tool",
+            CustomStaticFiles(directory="web_tool", html=True),
+            name="web_tool",
+        )
+
+        # Mount main frontend last (as catch-all)
+        self.app.mount(
+            "/",
+            CustomStaticFiles(directory="frontend", html=True),
+            name="frontend",
         )
 
     def run(self):
@@ -75,7 +95,7 @@ class WebSocketServer:
     @staticmethod
     def clean_cache():
         """Clean the cache directory by removing and recreating it."""
-        cache_dir = "./cache"
+        cache_dir = "cache"
         if os.path.exists(cache_dir):
             shutil.rmtree(cache_dir)
             os.makedirs(cache_dir)
