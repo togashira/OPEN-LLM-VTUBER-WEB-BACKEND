@@ -135,14 +135,6 @@ Continue? (y/N): """,
 def get_system_language():
     """Get system language using a combination of methods."""
 
-    # Try to get the current locale
-    current_locale = locale.getlocale(locale.LC_ALL)[0]
-    if current_locale:
-        lang = current_locale.split("_")[0]
-        if lang.startswith("zh"):
-            return "zh"
-
-    # If locale.getlocale() fails, use platform-specific APIs
     os_name = platform.system()
 
     if os_name == "Windows":
