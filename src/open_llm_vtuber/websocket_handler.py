@@ -86,7 +86,7 @@ class WebSocketHandler:
             "interrupt-signal": self._handle_interrupt,
             "mic-audio-data": self._handle_audio_data,
             "mic-audio-end": self._handle_conversation_trigger,
-            "unity-audio-data": self._handle_unity_audio_data,
+            "raw-audio-data": self._handle_raw_audio_data,
             "text-input": self._handle_conversation_trigger,
             "ai-speak-signal": self._handle_conversation_trigger,
             "fetch-configs": self._handle_fetch_configs,
@@ -456,10 +456,10 @@ class WebSocketHandler:
                 np.array(audio_data, dtype=np.float32),
             )
 
-    async def _handle_unity_audio_data(
+    async def _handle_raw_audio_data(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
-        """Handle incoming unity audio data"""
+        """Handle incoming raw audio data for VAD processing"""
         context = self.client_contexts[client_uid]
         chunk = data.get("audio", [])
         if chunk:
