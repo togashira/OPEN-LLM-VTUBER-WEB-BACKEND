@@ -92,7 +92,8 @@ async def handle_sentence_output(
         logger.debug(f"🏃 Processing output: '''{tts_text}'''...")
 
         if translate_engine:
-            tts_text = translate_engine.translate(tts_text)
+            if tts_text.strip():
+                tts_text = translate_engine.translate(tts_text)
             logger.info(f"🏃 Text after translation: '''{tts_text}'''...")
         else:
             logger.debug("🚫 No translation engine available. Skipping translation.")
