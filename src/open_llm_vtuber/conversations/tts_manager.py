@@ -49,7 +49,17 @@ class TTSTaskManager:
         """
         if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', '', tts_text)) == 0:
             logger.debug("Empty TTS text, sending silent display payload")
-            await self._send_silent_payload(display_text, actions, websocket_send)
+            # Get current sequence number for silent payload
+            current_sequence = self._sequence_counter
+            self._sequence_counter += 1
+            
+            # Start sender task if not running
+            if not self._sender_task or self._sender_task.done():
+                self._sender_task = asyncio.create_task(
+                    self._process_payload_queue(websocket_send)
+                )
+            
+            await self._send_silent_payload(display_text, actions, current_sequence)
             return
 
         logger.debug(
@@ -107,15 +117,15 @@ class TTSTaskManager:
         self,
         display_text: DisplayText,
         actions: Optional[Actions],
-        websocket_send: WebSocketSend,
+        sequence_number: int,
     ) -> None:
-        """Send a silent audio payload immediately"""
+        """Queue a silent audio payload"""
         audio_payload = prepare_audio_payload(
             audio_path=None,
             display_text=display_text,
             actions=actions,
         )
-        await websocket_send(json.dumps(audio_payload))
+        await self._payload_queue.put((audio_payload, sequence_number))
 
     async def _process_tts(
         self,
