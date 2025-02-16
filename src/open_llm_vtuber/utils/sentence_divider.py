@@ -141,7 +141,7 @@ def comma_splitter(text: str) -> Tuple[str, str]:
     return text, ""
 
 
-def is_punctuation(text: str) -> bool:
+def has_punctuation(text: str) -> bool:
     """
     Check if the text is a punctuation mark.
 
@@ -151,7 +151,10 @@ def is_punctuation(text: str) -> bool:
     Returns:
         bool: Whether the text is a punctuation mark
     """
-    return text in COMMAS or text in END_PUNCTUATIONS
+    for punct in COMMAS + END_PUNCTUATIONS:
+        if punct in text:
+            return True
+    return False
 
 
 def contains_end_punctuation(text: str) -> bool:
@@ -533,31 +536,22 @@ class SentenceDivider:
             SentenceWithTags: Complete sentences with their tag information
         """
         self._full_response = []
-        last_token_was_punct = False
-        # buffer_threshold = 25
 
         async for segment in segment_stream:
-            for token in segment:  # Actually it's character, not token
-                self._buffer += token
-                self._full_response.append(token)
+            self._buffer += segment
+            self._full_response.append(segment)
 
-                if is_punctuation(token):
-                    last_token_was_punct = True
-                    continue
+            # Process buffer after punctuation, when buffer gets too long,
+            # or when we see a tag
+            should_process = any(
+                re.search(f"{tag}(?:/)?>" , self._buffer) 
+                for tag in self.valid_tags
+            ) or has_punctuation(self._buffer)
 
-                # Process buffer after punctuation, when buffer gets too long,
-                # or when we see a tag
-                should_process = (
-                    last_token_was_punct
-                    # or len(self._buffer) >= buffer_threshold
-                    or any(f"<{tag}" in self._buffer for tag in self.valid_tags)
-                )
-
-                if should_process:
-                    last_token_was_punct = False
-                    sentences = await self._process_buffer()
-                    for sentence in sentences:
-                        yield sentence
+            if should_process:
+                sentences = await self._process_buffer()
+                for sentence in sentences:
+                    yield sentence
 
         # Process remaining text at end of stream
         if self._buffer.strip():
