@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict
@@ -46,7 +47,7 @@ class TTSTaskManager:
             tts_engine: TTS engine instance
             websocket_send: WebSocket send function
         """
-        if not tts_text or not tts_text.strip():
+        if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', '', tts_text)) == 0:
             logger.debug("Empty TTS text, sending silent display payload")
             await self._send_silent_payload(display_text, actions, websocket_send)
             return

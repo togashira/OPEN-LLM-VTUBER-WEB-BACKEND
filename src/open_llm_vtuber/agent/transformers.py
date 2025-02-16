@@ -36,6 +36,7 @@ def sentence_divider(
             token_stream = func(*args, **kwargs)
             async for sentence in divider.process_stream(token_stream):
                 yield sentence
+                logger.debug(f"sentence_divider: {sentence}")
 
         return wrapper
 

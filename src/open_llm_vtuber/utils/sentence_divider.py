@@ -521,41 +521,43 @@ class SentenceDivider:
 
         return result
 
-    async def process_stream(self, token_stream) -> AsyncIterator[SentenceWithTags]:
+    async def process_stream(self, segment_stream) -> AsyncIterator[SentenceWithTags]:
         """
         Process a stream of tokens and yield complete sentences with tag information.
+        pysbd may not able to handle ...
 
         Args:
-            token_stream: An async iterator yielding tokens
+            segment_stream: An async iterator yielding segments
 
         Yields:
             SentenceWithTags: Complete sentences with their tag information
         """
         self._full_response = []
         last_token_was_punct = False
-        buffer_threshold = 25
+        # buffer_threshold = 25
 
-        async for token in token_stream:
-            self._buffer += token
-            self._full_response.append(token)
+        async for segment in segment_stream:
+            for token in segment:  # Actually it's character, not token
+                self._buffer += token
+                self._full_response.append(token)
 
-            if is_punctuation(token):
-                last_token_was_punct = True
-                continue
+                if is_punctuation(token):
+                    last_token_was_punct = True
+                    continue
 
-            # Process buffer after punctuation, when buffer gets too long,
-            # or when we see a tag
-            should_process = (
-                last_token_was_punct
-                or len(self._buffer) >= buffer_threshold
-                or any(f"<{tag}" in self._buffer for tag in self.valid_tags)
-            )
+                # Process buffer after punctuation, when buffer gets too long,
+                # or when we see a tag
+                should_process = (
+                    last_token_was_punct
+                    # or len(self._buffer) >= buffer_threshold
+                    or any(f"<{tag}" in self._buffer for tag in self.valid_tags)
+                )
 
-            if should_process:
-                last_token_was_punct = False
-                sentences = await self._process_buffer()
-                for sentence in sentences:
-                    yield sentence
+                if should_process:
+                    last_token_was_punct = False
+                    sentences = await self._process_buffer()
+                    for sentence in sentences:
+                        yield sentence
 
         # Process remaining text at end of stream
         if self._buffer.strip():

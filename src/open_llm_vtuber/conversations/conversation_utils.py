@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import Optional, Union, Any, List, Dict
 import numpy as np
 import json
@@ -92,7 +93,7 @@ async def handle_sentence_output(
         logger.debug(f"🏃 Processing output: '''{tts_text}'''...")
 
         if translate_engine:
-            if tts_text.strip():
+            if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', '', tts_text)):
                 tts_text = translate_engine.translate(tts_text)
             logger.info(f"🏃 Text after translation: '''{tts_text}'''...")
         else:
