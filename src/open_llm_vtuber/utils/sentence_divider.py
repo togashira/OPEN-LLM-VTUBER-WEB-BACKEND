@@ -544,8 +544,7 @@ class SentenceDivider:
             # Process buffer after punctuation, when buffer gets too long,
             # or when we see a tag
             should_process = any(
-                re.search(f"{tag}(?:/)?>" , self._buffer) 
-                for tag in self.valid_tags
+                re.search(f"{tag}(?:/)?>", self._buffer) for tag in self.valid_tags
             ) or has_punctuation(self._buffer)
 
             if should_process:

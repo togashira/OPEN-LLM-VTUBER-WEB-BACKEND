@@ -47,18 +47,18 @@ class TTSTaskManager:
             tts_engine: TTS engine instance
             websocket_send: WebSocket send function
         """
-        if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', '', tts_text)) == 0:
+        if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', "", tts_text)) == 0:
             logger.debug("Empty TTS text, sending silent display payload")
             # Get current sequence number for silent payload
             current_sequence = self._sequence_counter
             self._sequence_counter += 1
-            
+
             # Start sender task if not running
             if not self._sender_task or self._sender_task.done():
                 self._sender_task = asyncio.create_task(
                     self._process_payload_queue(websocket_send)
                 )
-            
+
             await self._send_silent_payload(display_text, actions, current_sequence)
             return
 
