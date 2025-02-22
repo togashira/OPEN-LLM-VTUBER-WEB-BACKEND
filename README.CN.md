@@ -19,6 +19,8 @@
 
 [使用文档](https://open-llm-vtuber.github.io/docs/quick-start) | | [![项目路线图](https://img.shields.io/badge/项目路线图-GitHub_Project-yellow)](https://github.com/orgs/Open-LLM-VTuber/projects/2)
 
+<a href="https://trendshift.io/repositories/12358" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12358" alt="t41372%2FOpen-LLM-VTuber | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
 </h3>
 
 > [常见问题文档](https://docs.qq.com/pdf/DTFZGQXdTUXhIYWRq)
