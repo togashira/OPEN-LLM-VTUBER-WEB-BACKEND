@@ -5,7 +5,7 @@
 # ===========================
 # 系统设置：与服务器初始化相关的设置
 system_config:
-  conf_version: "v1.1.0-alpha.1" # 配置文件版本
+  conf_version: "v1.1.0" # 配置文件版本
   host: "localhost" # 服务器监听的地址，"0.0.0.0" 表示监听所有网络接口；如果需要安全，可以使用 "127.0.0.1"（仅本地访问）
   port: 12393 # 服务器监听的端口
   config_alts_dir: "characters" # 用于存放替代配置的目录
@@ -48,7 +48,7 @@ character_config:
         # "openai_compatible_llm", "llama_cpp_llm", "claude_llm", "ollama_llm"
         # "openai_llm", "gemini_llm", "zhipu_llm", "deepseek_llm", "groq_llm"
         # "mistral_llm"
-        llm_provider: "openai_compatible_llm" # 使用的 LLM 提供商
+        llm_provider: "ollama_llm" # 使用的 LLM 提供商
         # 是否在第一句回应时遇上逗号就直接生成音频以减少首句延迟（默认：True）
         faster_first_response: True
         # 句子分割方法："regex" 或 "pysbd"

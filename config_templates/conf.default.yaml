@@ -1,6 +1,6 @@
 # System Settings: Setting related to the initialization of the server
 system_config:
-  conf_version: "v1.1.0-alpha.1"
+  conf_version: "v1.1.0"
   host: "localhost" # use 0.0.0.0 if you want other devices to access this page
   port: 12393
   # New setting for alternative configurations
