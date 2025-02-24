@@ -101,8 +101,8 @@ character_config:
         temperature: 1.0 # 温度，介于 0 到 2 之间
         interrupt_method: "user"
         # 用于表示中断信号的方法(提示词模式)。
-        # 如果LLM支持在聊天记忆中的任何位置插入系统提示词，请使用“system”。
-        # 否则，请使用“user”。您一般不需要更改此设置。
+        # 如果LLM支持在聊天记忆中的任何位置插入系统提示词，请使用"system"。
+        # 否则，请使用"user"。您一般不需要更改此设置。
 
       # Claude API 配置
       claude_llm:
@@ -161,6 +161,7 @@ character_config:
     azure_asr:
       api_key: "azure_api_key" # Azure API 密钥
       region: "eastus" # 区域
+      languages: ["en-US", "zh-CN"]  # 要检测的语言列表
 
     # Faster Whisper 配置
     faster_whisper:
@@ -384,10 +385,6 @@ character_config:
       # 比如...你说话并阅读英语字幕，而 TTS 说日语之类的
       translate_audio: False # 警告：请确保翻译引擎配置成功再开启此选项，否则会翻译失败
       translate_provider: "deeplx" # 翻译提供商, 目前支持 deeplx 或 tencent
-
-      deeplx:
-        deeplx_target_lang: "JA" # 目标语言
-        deeplx_api_endpoint: "http://localhost:1188/v2/translate" # API 端点
 
 
       #  腾讯文本翻译  每月500万字符  记得关闭后付费,需要手动前往 机器翻译控制台 > 系统设置 关闭
