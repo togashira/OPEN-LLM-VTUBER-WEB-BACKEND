@@ -8,8 +8,7 @@ import soundfile as sf
 import uuid
 import asyncio
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
-
+CACHE_DIR = "cache"
 
 class VoiceRecognition(ASRInterface):
     def __init__(
@@ -63,7 +62,7 @@ class VoiceRecognition(ASRInterface):
                 audio_config=audio_config
             )
         except Exception as e:
-            logger.error(f"Failed to create speech recognizer: {e}")
+            logger.warning(f"Failed to create speech recognizer: {e}")
             raise
 
     async def async_transcribe_np(self, audio: np.ndarray) -> str:
@@ -79,7 +78,7 @@ class VoiceRecognition(ASRInterface):
         Raises:
             Exception: If transcription fails
         """
-        temp_file = os.path.join(CACHE_DIR, f"temp_{uuid.uuid4()}.wav")
+        temp_file = os.path.join(CACHE_DIR, f"{uuid.uuid4()}.wav")
         
         try:
             os.makedirs(CACHE_DIR, exist_ok=True)
