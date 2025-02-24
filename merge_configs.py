@@ -139,7 +139,7 @@ def get_extra_keys(user, default, path=""):
 
 def compare_configs(user_path: str, default_path: str, lang: str = "en") -> bool:
     """Compare user and default configs, log discrepancies, and return status."""
-    yaml = YAML()
+    yaml = YAML(typ="safe")
     yaml.preserve_quotes = True
 
     user_config = yaml.load(load_text_file_with_guess_encoding(user_path))
