@@ -19,8 +19,8 @@ class AzureASRConfig(I18nMixin):
             en="Azure region (e.g., eastus)", zh="Azure 区域（如 eastus)"
         ),
         "languages": Description(
-            en="List of languages to detect (e.g., ['en-US', 'zh-CN'])", 
-            zh="要检测的语言列表（如 ['en-US', 'zh-CN'])"
+            en="List of languages to detect (e.g., ['en-US', 'zh-CN'])",
+            zh="要检测的语言列表（如 ['en-US', 'zh-CN'])",
         ),
     }
 
