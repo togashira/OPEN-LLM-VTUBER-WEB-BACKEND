@@ -9,9 +9,9 @@ from .service_context import ServiceContext
 from .websocket_handler import WebSocketHandler
 
 
-def create_routes(default_context_cache: ServiceContext) -> APIRouter:
+def init_client_ws_route(default_context_cache: ServiceContext) -> APIRouter:
     """
-    Create and return API routes for handling WebSocket connections.
+    Create and return API routes for handling the `/client-ws` WebSocket connections.
 
     Args:
         default_context_cache: Default service context cache for new sessions.
@@ -38,6 +38,22 @@ def create_routes(default_context_cache: ServiceContext) -> APIRouter:
             logger.error(f"Error in WebSocket connection: {e}")
             await ws_handler.handle_disconnect(client_uid)
             raise
+
+    return router
+
+
+def init_webtool_routes(default_context_cache: ServiceContext) -> APIRouter:
+    """
+    Create and return API routes for handling web tool interactions.
+
+    Args:
+        default_context_cache: Default service context cache for new sessions.
+
+    Returns:
+        APIRouter: Configured router with WebSocket endpoint.
+    """
+
+    router = APIRouter()
 
     @router.get("/web-tool")
     async def web_tool_redirect():
