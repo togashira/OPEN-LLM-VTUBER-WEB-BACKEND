@@ -115,6 +115,10 @@ However, models downloaded via ModelScope or Hugging Face may also be in `MODELS
 
 Review the installation guide for any extra tools you no longer need, such as `uv`, `ffmpeg`, or `deeplx`.  
 
+## 🤗 Want to contribute?
+Checkout the [development guide](https://docs.llmvtuber.com/docs/development-guide/overview).
+
+
 # 🎉🎉🎉 Related Projects
 
 [ylxmf2005/LLM-Live2D-Desktop-Assitant](https://github.com/ylxmf2005/LLM-Live2D-Desktop-Assitant)

@@ -114,6 +114,9 @@
 
 查看安装指南中，你所安装但可能不再需要的任何额外工具，例如`uv`、`ffmpeg`或`deeplx`。
 
+## 🤗 想为项目做贡献?
+可以看看 [开发指南](https://docs.llmvtuber.com/docs/development-guide/overview).
+
 # 🎉🎉🎉 相关项目
 
 [ylxmf2005/LLM-Live2D-Desktop-Assitant](https://github.com/ylxmf2005/LLM-Live2D-Desktop-Assitant)
