@@ -40,8 +40,11 @@ assignees: ''
     
 - If you used GPU, please provide your GPU model and driver version:
     
-    如果你使用了 GPU，请提供你的
+    如果你使用了 GPU，请提供你的 GPU 型号及驱动版本信息:
     
+- Browser (if applicable):
+
+       浏览器（如果适用）：
 
 ---
 
@@ -68,6 +71,7 @@ What exactly is happening? What do you want to see? How to reproduce?
 ### 5. Configuration / 配置文件
 
 > Please provide relevant config files, with sensitive info like API keys removed
+> 
 > 
 > 请提供相关配置文件（请务必去除 API key 等敏感信息）
 > 
