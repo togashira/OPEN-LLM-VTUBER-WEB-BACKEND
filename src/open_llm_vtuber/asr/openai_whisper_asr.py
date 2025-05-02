@@ -17,8 +17,6 @@ class VoiceRecognition(ASRInterface):
         )
 
     def transcribe_np(self, audio: np.ndarray) -> str:
-        segments = self.model.transcribe(audio)
-        full_text = ""
-        for segment in segments:
-            full_text += segment
+        result = self.model.transcribe(audio)
+        full_text = result['text']
         return full_text
