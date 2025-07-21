@@ -52,6 +52,7 @@ class WebSocketServer:
             init_webtool_routes(default_context_cache=default_context_cache),
         )
 
+
         # Mount cache directory first (to ensure audio file access)
         if not os.path.exists("cache"):
             os.makedirs("cache")
@@ -62,11 +63,58 @@ class WebSocketServer:
         )
 
         # Mount static files
-        self.app.mount(
-            "/live2d-models",
-            StaticFiles(directory="live2d-models"),
-            name="live2d-models",
-        )
+       # Mount static files（live2d-modelsはconfigからパス取得）        
+        frontend_config = getattr(config, "frontend", None)
+        live2d_model_path = "live2d-models"
+        # dict型の場合
+        if isinstance(frontend_config, dict):
+            live2d_model_path = frontend_config.get("live2d_model_path", live2d_model_path)
+        # オブジェクト型の場合
+        elif hasattr(frontend_config, "live2d_model_path"):
+            live2d_model_path = frontend_config.live2d_model_path
+        # 相対パスの場合は絶対パスに変換
+        if not os.path.isabs(live2d_model_path):
+            live2d_model_path = os.path.abspath(live2d_model_path)
+        
+        print(f"Live2D models directory: {live2d_model_path}")
+        print(f"Directory exists: {os.path.exists(live2d_model_path)}")
+
+        # カスタムエンドポイントの定義前にログ出力
+        print("🚀 About to define custom Live2D endpoint...")
+
+       # StaticFilesの代わりにカスタムエンドポイントを使用
+        @self.app.get("/live2d-models/{file_path:path}")
+        async def serve_live2d_file(file_path: str):
+            """Live2Dファイルを提供するエンドポイント"""
+            import mimetypes
+            from fastapi.responses import FileResponse
+            
+            full_path = os.path.join(live2d_model_path, file_path)
+            print(f"🎯 Serving Live2D file: {full_path}")
+            
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+                # MIMEタイプを自動検出
+                mime_type, _ = mimetypes.guess_type(full_path)
+                if mime_type is None:
+                    if file_path.endswith('.json'):
+                        mime_type = 'application/json'
+                    elif file_path.endswith('.moc3'):
+                        mime_type = 'application/octet-stream'
+                    else:
+                        mime_type = 'application/octet-stream'
+                
+                return FileResponse(
+                    path=full_path,
+                    media_type=mime_type,
+                    headers={"Access-Control-Allow-Origin": "*"}
+                )
+            else:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail="File not found")
+        
+        print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_path}")
+        print("🎯 Custom endpoint defined successfully!")
+
         self.app.mount(
             "/bg",
             StaticFiles(directory="backgrounds"),
@@ -91,6 +139,15 @@ class WebSocketServer:
             CustomStaticFiles(directory="frontend", html=True),
             name="frontend",
         )
+        print("✅ Frontend mount re-enabled")
+
+#コメントアウト
+        #self.app.mount(
+        #    "/live2d-models",
+              # ヘルスチェック専用エンドポイント（ALB/ELB用）
+        @self.app.get("/healthz", include_in_schema=False)
+        async def health_check():
+            return Response(content="OK", status_code=200)
 
     def run(self):
         pass
