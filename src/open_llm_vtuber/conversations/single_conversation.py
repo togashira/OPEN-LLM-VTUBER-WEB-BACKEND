@@ -4,7 +4,7 @@ import json
 from loguru import logger
 import numpy as np
 # single_conversation.py の先頭付近
-from .prepost_hooks import postprocess_ai_text  # <- 追加（自作フック）
+from .prepost_hooks import postprocess_ai_text, preprocess_user_text  # <- 追加（自作フック）
 
 from .conversation_utils import (
     create_batch_input,
@@ -71,8 +71,10 @@ async def process_single_conversation(
         # ③ 実行タイミングを計測
         t0 = time.perf_counter()
         # BatchInputの生成（ASR後のテキストを使う）
+        # AIプロンプト用にASR後テキストをpreprocess_user_textでラップ
+        prompt_text = preprocess_user_text(input_text)
         batch_input = create_batch_input(
-            input_text,
+            prompt_text,
             images,
             context.character_config.human_name
         )
