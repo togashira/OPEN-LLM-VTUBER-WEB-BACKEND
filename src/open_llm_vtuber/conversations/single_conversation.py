@@ -22,7 +22,6 @@ from ..service_context import ServiceContext
 
 
 async def process_single_conversation(
-    logger.info(f"[DEBUG] process_single_conversation entry user_input type: {type(user_input)}, value: {repr(user_input)}")
     context: ServiceContext,
     websocket_send: WebSocketSend,
     client_uid: str,
@@ -30,6 +29,7 @@ async def process_single_conversation(
     images: Optional[List[Dict[str, Any]]] = None,
     session_emoji: str = np.random.choice(EMOJI_LIST),
 ) -> str:
+    logger.info(f"[DEBUG] process_single_conversation entry user_input type: {type(user_input)}, value: {repr(user_input)}")
     """Process a single-user conversation turn
 
     Args:
