@@ -152,9 +152,13 @@ async def process_user_input(
         logger.info("Transcribing audio input...")
         logger.info(f"[DEBUG] process_user_input np.ndarray shape: {user_input.shape}, dtype: {user_input.dtype}")
         input_text = await asr_engine.async_transcribe_np(user_input)
-        logger.info(f"[DEBUG] process_user_input transcribed input_text: {repr(input_text)}")
+        logger.info(f"[DEBUG] process_user_input transcribed input_text: {repr(input_text)}, type: {type(input_text)}")
         if not input_text:
             logger.warning("[ASR WARNING] async_transcribe_np returned empty or None. Possible ASR failure.")
+        # repr文字列（数列str）なら警告
+        import re
+        if isinstance(input_text, str) and re.search(r"\[.*?[-+]?\d+\.\d+.*?\]", input_text, re.DOTALL):
+            logger.warning("[ASR WARNING] async_transcribe_np returned array-like string. Possible ASR failure.")
         await websocket_send(
             json.dumps({"type": "user-input-transcription", "text": input_text})
         )
