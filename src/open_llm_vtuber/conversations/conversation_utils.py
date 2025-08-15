@@ -156,11 +156,13 @@ async def process_user_input(
             json.dumps({"type": "user-input-transcription", "text": input_text})
         )
         return input_text
-    # str型でも配列文字列混入をガード
+    # str型でも配列文字列混入をガード（配列部分だけ除去し他は残す）
     import re
-    if isinstance(user_input, str) and re.search(r"\[.*?[-+]?\d+\.\d+.*?\]", user_input, re.DOTALL):
-        logger.info("[GUARD] process_user_input: input looked like array, replaced with empty string.")
-        return ""
+    if isinstance(user_input, str):
+        cleaned = re.sub(r"\[.*?[-+]?\d+\.\d+.*?\]", "", user_input, flags=re.DOTALL)
+        if cleaned != user_input:
+            logger.info("[GUARD] process_user_input: array-like part removed from input.")
+        return cleaned
     return user_input
 
 
