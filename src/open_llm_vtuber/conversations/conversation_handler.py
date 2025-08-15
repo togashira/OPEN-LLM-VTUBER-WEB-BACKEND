@@ -57,6 +57,14 @@ async def handle_conversation_trigger(
                 logger.info(f"[DEBUG] mic-audio-end user_input.shape: {user_input.shape}, dtype: {user_input.dtype}")
             info("input.mic_audio_end", client_uid=client_uid, preview=preview(user_input) if isinstance(user_input, str) else "<audio-bytes>")
             dbg("[DEBUG] mic-audio-end user_input type(after): {} value: {}".format(type(user_input), repr(user_input)))
+            # ASRを必ず通す
+            from .conversation_utils import process_user_input
+            asr_engine = getattr(context, "asr_engine", None)
+            if asr_engine is None:
+                logger.warning("[ASR ERROR] asr_engine is None. Skipping ASR.")
+            else:
+                user_input = await process_user_input(user_input, asr_engine, websocket.send_text)
+                logger.info(f"[DEBUG] after ASR process_user_input, user_input type: {type(user_input)}, value: {repr(user_input)}")
             received_data_buffers[client_uid] = np.array([])
 
         # user_input取得直後に配列部分除去ガード
