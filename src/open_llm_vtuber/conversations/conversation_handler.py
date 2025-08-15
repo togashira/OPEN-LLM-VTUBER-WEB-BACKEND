@@ -1,3 +1,4 @@
+import numpy as np
 from ..utils.debug_tools import info, preview
 import uuid
 from ..utils.debug_tools import trace, dbg, preview
