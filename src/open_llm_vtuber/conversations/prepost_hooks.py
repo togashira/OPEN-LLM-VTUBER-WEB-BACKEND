@@ -14,7 +14,7 @@ def preprocess_user_text(raw, user_ctx: dict | None = None) -> str:
         logger.warning("user_input is ndarray in preprocess_user_text, returning empty string")
         return ""
     # ① 入力にユーザー最新文脈やテスト用ペルソナを合成
-    picked = random.choice(PERSONA_HINTS)
+    picked = "ユーザーはゴリゴリの津軽弁です。"  # 固定
     ctx = (user_ctx or {}).get("today_summary", "")
     prefix = "あなたはユーザーの背景に配慮して自然にコーチングします。"
     ctx_line = f"【最新】{ctx}\n" if ctx else ""
