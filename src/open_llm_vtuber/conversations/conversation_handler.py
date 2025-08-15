@@ -49,6 +49,7 @@ async def handle_conversation_trigger(
             await websocket.send_text(json.dumps({"type":"full-text","text":"AI wants to speak something..."}))
         elif msg_type == "text-input":
             user_input = data.get("text","")
+            logger.info(f"[DEBUG] text-input user_input type: {type(user_input)}, repr: {repr(user_input)}")
         else:  # mic-audio-end
             user_input = received_data_buffers[client_uid]
             logger.info(f"[DEBUG] mic-audio-end user_input type: {type(user_input)}, repr: {repr(user_input)}")
