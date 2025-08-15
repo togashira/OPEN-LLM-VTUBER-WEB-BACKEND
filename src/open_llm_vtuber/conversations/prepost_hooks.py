@@ -22,4 +22,9 @@ def preprocess_user_text(raw, user_ctx: dict | None = None) -> str:
 
 def postprocess_ai_text(ai_text: str, happi: bool = True) -> str:
     # ④ 出力の最終整形（HappiBoost風）。感情タグ付与などもここで。
-    return f"ありがとう！{ai_text}" if happi else ai_text
+    # AI出力の末尾に「（加工しちゃいまーす）」を付与
+    from loguru import logger
+    out = f"ありがとう！{ai_text}" if happi else ai_text
+    out = out + "（加工しちゃいまーす）"
+    logger.info(f"ここがアウトぷっとでーす: {out}")
+    return out
