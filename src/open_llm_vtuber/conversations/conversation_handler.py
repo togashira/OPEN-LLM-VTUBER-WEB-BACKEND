@@ -1,3 +1,6 @@
+from ..utils.debug_tools import info, preview
+import uuid
+from ..utils.debug_tools import trace, dbg, preview
 import asyncio
 import json
 from typing import Dict, Optional, Callable
@@ -5,7 +8,8 @@ from typing import Dict, Optional, Callable
 import numpy as np
 from fastapi import WebSocket
 from loguru import logger
-
+# 先頭あたり
+from .prepost_hooks import preprocess_user_text  # <- 追加（自作フック）
 from ..chat_group import ChatGroupManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
@@ -29,22 +33,56 @@ async def handle_conversation_trigger(
     broadcast_to_group: Callable,
 ) -> None:
     """Handle triggers that start a conversation"""
-    if msg_type == "ai-speak-signal":
-        user_input = ""
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "full-text",
-                    "text": "AI wants to speak something...",
-                }
-            )
-        )
-    elif msg_type == "text-input":
-        user_input = data.get("text", "")
-    else:  # mic-audio-end
-        user_input = received_data_buffers[client_uid]
-        received_data_buffers[client_uid] = np.array([])
 
+    conv_id = data.get("conv_id") or str(uuid.uuid4())
+    async with trace("handle_conversation_trigger",
+                     conv_id=conv_id, msg_type=msg_type, client_uid=client_uid):
+        # 受信概要
+        buf = received_data_buffers.get(client_uid)
+        dbg("input.received",
+            conv_id=conv_id, keys=list(data.keys()),
+            buf_len=(int(buf.size) if isinstance(buf, np.ndarray) else None))
+
+        if msg_type == "ai-speak-signal":
+            user_input = ""
+            await websocket.send_text(json.dumps({"type":"full-text","text":"AI wants to speak something..."}))
+        elif msg_type == "text-input":
+            user_input = data.get("text","")
+        else:  # mic-audio-end
+            user_input = received_data_buffers[client_uid]
+            received_data_buffers[client_uid] = np.array([])
+
+        # ★ 前処理フック（あなたが実装済み）
+        from .prepost_hooks import preprocess_user_text
+        try:
+            user_ctx = getattr(context, "user_context", {}) or {}
+            dbg("preprocess.before", conv_id=conv_id,
+                preview=preview(user_input) if isinstance(user_input,str) else "<audio-bytes>")
+            user_input = preprocess_user_text(user_input, user_ctx)
+            dbg("preprocess.after", conv_id=conv_id, preview=preview(user_input))
+        except Exception as e:
+            dbg("preprocess.skip", conv_id=conv_id, err=str(e))
+
+        images = data.get("images")
+        session_emoji = np.random.choice(EMOJI_LIST)
+        group = chat_group_manager.get_client_group(client_uid)
+
+        if group and len(group.members) > 1:
+            task_key = group.group_id
+            dbg("conversation.group.start", conv_id=conv_id,
+                group_id=task_key, members=list(group.members))
+            # 既存のcreate_task(...)はそのまま
+        else:
+            dbg("conversation.single.start", conv_id=conv_id, client_uid=client_uid)
+            # 既存のcreate_task(...)はそのまま
+
+    # ★ ここで独自DBなどを使ったユーザーの付加データ前処理（①）
+    try:
+        user_ctx = context.user_context if hasattr(context, "user_context") else {}
+        user_input = preprocess_user_text(user_input, user_ctx)
+    except Exception as e:
+        logger.warning(f"preprocess skipped: {e}")
+    # ★ここまで
     images = data.get("images")
     session_emoji = np.random.choice(EMOJI_LIST)
 
@@ -90,6 +128,7 @@ async def handle_individual_interrupt(
     context: ServiceContext,
     heard_response: str,
 ):
+    info("interrupt.individual", client_uid=client_uid, heard_preview=preview(heard_response))
     if client_uid in current_conversation_tasks:
         task = current_conversation_tasks[client_uid]
         if task and not task.done():
@@ -127,6 +166,7 @@ async def handle_group_interrupt(
     broadcast_to_group: Callable,
 ) -> None:
     """Handles interruption for a group conversation"""
+    info("interrupt.group", group_id=group_id, heard_preview=preview(heard_response))
     task = current_conversation_tasks.get(group_id)
     if not task or task.done():
         return

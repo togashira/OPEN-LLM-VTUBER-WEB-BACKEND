@@ -3,6 +3,8 @@ import asyncio
 import json
 from loguru import logger
 import numpy as np
+# single_conversation.py の先頭付近
+from .prepost_hooks import postprocess_ai_text  # <- 追加（自作フック）
 
 from .conversation_utils import (
     create_batch_input,
@@ -39,8 +41,67 @@ async def process_single_conversation(
 
     Returns:
         str: Complete response text
-    """
-    # Create TTSTaskManager for this conversation
+    """    
+    
+    # ...既存の前処理LLM処理...
+
+    # --- ② LLM固定/切替（必要なら） ---
+    try:
+        provider = getattr(context, "forced_llm_provider", None)
+        if provider and hasattr(context.agent_engine, "set_provider"):
+            context.agent_engine.set_provider(provider)
+    except Exception as e:
+        context.logger.warning(f"llm provider switch skipped: {e}")
+
+    # --- ③ LLM実行 ---
+    ai_text = await context.agent_engine.run(user_input=user_input, images=images)
+
+    # --- ④ 出力前処理 ---
+    try:
+        ai_text = postprocess_ai_text(ai_text, happi=True)
+    except Exception as e:
+        context.logger.warning(f"postprocess skipped: {e}")
+
+    # --- 送信・保存 ---
+    await websocket_send(json.dumps({"type": "ai-text", "text": ai_text, "emoji": session_emoji}))
+    ##### ---　ここまでが単一会話の処理 --- #####
+
+        conv_id = getattr(context, "conv_id", None)
+        async with trace("single_conversation",
+                         conv_id=conv_id, client_uid=client_uid):
+            # ② LLM固定/切替（必要なときだけ）
+            try:
+                provider = getattr(context, "forced_llm_provider", None)
+                if provider and hasattr(context.agent_engine, "set_provider"):
+                    context.agent_engine.set_provider(provider)
+                    dbg("llm.provider.set", conv_id=conv_id, provider=provider)
+                else:
+                    dbg("llm.provider.keep", conv_id=conv_id,
+                        provider=getattr(context.agent_engine, "provider_name", "default"))
+            except Exception as e:
+                dbg("llm.provider.error", conv_id=conv_id, err=str(e))
+
+            # 入力のプレビュー
+            dbg("llm.input", conv_id=conv_id, preview=preview(user_input))
+
+            # ③ 実行タイミングを計測
+            t0 = time.perf_counter()
+            ai_text = await context.agent_engine.run(user_input=user_input, images=images)
+            llm_ms = round((time.perf_counter() - t0) * 1000, 2)
+            dbg("llm.output", conv_id=conv_id, ms=llm_ms, preview=preview(ai_text))
+
+            # ④ 出力前処理（HappiBoost等）
+            try:
+                ai_text = postprocess_ai_text(ai_text, happi=True)
+                dbg("postprocess.done", conv_id=conv_id, preview=preview(ai_text))
+            except Exception as e:
+                dbg("postprocess.skip", conv_id=conv_id, err=str(e))
+
+            # 送信
+            payload = {"type": "ai-text", "text": ai_text, "emoji": session_emoji}
+            dbg("ws.send", conv_id=conv_id, bytes=len(json.dumps(payload, ensure_ascii=False)))
+            await websocket_send(json.dumps(payload, ensure_ascii=False))
+    # Create TTSTaskManager for th#is conversation
     tts_manager = TTSTaskManager()
 
     try:
