@@ -17,7 +17,10 @@ class LLMFactory:
             llm_provider: The type of LLM to create
             **kwargs: Additional arguments
         """
-        logger.info(f"Initializing LLM: {llm_provider}")
+        if llm_provider == "happiboost_api":
+            logger.info("[HappiBoost API] Initializing LLM: happiboost_api (OpenAI互換モード)")
+        else:
+            logger.info(f"Initializing LLM: {llm_provider}")
 
         if (
             llm_provider == "openai_compatible_llm"
