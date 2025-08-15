@@ -4,7 +4,6 @@ import atexit
 import argparse
 from pathlib import Path
 from src.open_llm_vtuber.config_manager.utils import read_yaml, validate_config
-...existing code...
 from src.open_llm_vtuber.server import WebSocketServer
 from loguru import logger
 import uvicorn

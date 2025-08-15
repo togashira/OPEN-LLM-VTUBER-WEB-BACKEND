@@ -1,12 +1,14 @@
 
-# config_manager/main.py
 import os
-print(f"[DEBUG][Config class] cwd: {os.getcwd()}")
-print(f"[DEBUG][Config class] __file__: {__file__}")
 from pydantic import BaseModel, Field
 from typing import Dict, ClassVar
-
 from .system import SystemConfig
+from .character import CharacterConfig
+from .i18n import I18nMixin, Description
+
+print(f"[DEBUG][Config class] cwd: {os.getcwd()}")
+print(f"[DEBUG][Config class] __file__: {__file__}")
+
 from .character import CharacterConfig
 from .i18n import I18nMixin, Description
 
