@@ -22,6 +22,7 @@ from ..service_context import ServiceContext
 
 
 async def process_single_conversation(
+    logger.info(f"[DEBUG] process_single_conversation entry user_input type: {type(user_input)}, value: {repr(user_input)}")
     context: ServiceContext,
     websocket_send: WebSocketSend,
     client_uid: str,

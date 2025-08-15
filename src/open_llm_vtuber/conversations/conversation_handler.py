@@ -113,6 +113,7 @@ async def handle_conversation_trigger(
             )
     else:
         # Use client_uid as task key for individual conversations
+        logger.info(f"[DEBUG] process_single_conversation call user_input type: {type(user_input)}, value: {repr(user_input)}")
         current_conversation_tasks[client_uid] = asyncio.create_task(
             process_single_conversation(
                 context=context,

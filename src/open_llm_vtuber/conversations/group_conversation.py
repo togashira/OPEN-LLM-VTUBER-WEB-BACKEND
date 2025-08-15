@@ -82,9 +82,11 @@ async def process_group_conversation(
             group_members=group_members,
             initiator_client_uid=initiator_client_uid,
         )
+        logger.info(f"[DEBUG] process_group_conversation input_text type: {type(input_text)}, value: {repr(input_text)}")
 
         for member_uid in group_members:
             member_context = client_contexts[member_uid]
+            logger.info(f"[DEBUG] before store_message input_text type: {type(input_text)}, value: {repr(input_text)}")
             store_message(
                 conf_uid=member_context.character_config.conf_uid,
                 history_uid=member_context.history_uid,
@@ -92,8 +94,11 @@ async def process_group_conversation(
                 content=input_text,
                 name=human_name,
             )
+            logger.info(f"[DEBUG] after store_message input_text type: {type(input_text)}, value: {repr(input_text)}")
 
-        state.conversation_history = [f"{human_name}: {input_text}"]
+    logger.info(f"[DEBUG] before state.conversation_history input_text type: {type(input_text)}, value: {repr(input_text)}")
+    state.conversation_history = [f"{human_name}: {input_text}"]
+    logger.info(f"[DEBUG] after state.conversation_history input_text type: {type(input_text)}, value: {repr(input_text)}")
 
         # Main conversation loop
         while state.group_queue:
@@ -178,9 +183,11 @@ async def process_group_input(
     initiator_client_uid: str,
 ) -> str:
     """Process and broadcast user input to group"""
+    logger.info(f"[DEBUG] process_group_input entry user_input type: {type(user_input)}, value: {repr(user_input)}")
     input_text = await process_user_input(
         user_input, initiator_context.asr_engine, initiator_ws_send
     )
+    logger.info(f"[DEBUG] process_group_input after process_user_input input_text: {repr(input_text)}")
     await broadcast_transcription(
         broadcast_func, group_members, input_text, initiator_client_uid
     )
@@ -226,21 +233,28 @@ async def handle_group_member_turn(
     new_messages = state.conversation_history[state.memory_index[current_member_uid] :]
     new_context = "\n".join(new_messages) if new_messages else ""
 
+    logger.info(f"[DEBUG] handle_group_member_turn new_context type: {type(new_context)}, value: {repr(new_context)}")
     batch_input = create_batch_input(
         input_text=new_context, images=images, from_name="Human"
     )
+    logger.info(f"[DEBUG] handle_group_member_turn batch_input type: {type(batch_input)}, value: {repr(batch_input)}")
 
     logger.info(
         f"AI {context.character_config.character_name} "
         f"(client {current_member_uid}) receiving context:\n{new_context}"
     )
 
-    full_response = await process_member_response(
-        context=context,
-        batch_input=batch_input,
-        current_ws_send=current_ws_send,
-        tts_manager=tts_manager,
-    )
+    try:
+        full_response = await process_member_response(
+            context=context,
+            batch_input=batch_input,
+            current_ws_send=current_ws_send,
+            tts_manager=tts_manager,
+        )
+    except Exception as e:
+        logger.info(f"[EXCEPTION] process_member_response error: {e}, new_context type: {type(new_context)}, value: {repr(new_context)}")
+        raise
+    logger.info(f"[DEBUG] handle_group_member_turn after process_member_response full_response type: {type(full_response)}, value: {repr(full_response)}")
 
     if tts_manager.task_list:
         await asyncio.gather(*tts_manager.task_list)

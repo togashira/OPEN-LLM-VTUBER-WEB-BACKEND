@@ -147,9 +147,11 @@ async def process_user_input(
     websocket_send: WebSocketSend,
 ) -> str:
     """Process user input, converting audio to text if needed"""
+    logger.info(f"[DEBUG] process_user_input entry user_input type: {type(user_input)}, value: {repr(user_input)}")
     if isinstance(user_input, np.ndarray):
         logger.info("Transcribing audio input...")
         input_text = await asr_engine.async_transcribe_np(user_input)
+        logger.info(f"[DEBUG] process_user_input transcribed input_text: {repr(input_text)}")
         await websocket_send(
             json.dumps({"type": "user-input-transcription", "text": input_text})
         )
