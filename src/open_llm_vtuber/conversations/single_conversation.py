@@ -52,8 +52,9 @@ async def process_single_conversation(
         input_text = await process_user_input(user_input, context.asr_engine, websocket_send)
         if not isinstance(input_text, str):
             input_text = ""
-        # 配列文字列混入ガード
-        if input_text.strip().startswith("[") and input_text.strip().endswith("]"):
+        # 配列文字列混入ガード（正規表現で厳密に判定）
+        import re
+        if re.search(r"\[.*?[-+]?\d+\.\d+.*?\]", input_text, re.DOTALL):
             logger.info("[GUARD] input_text looked like array, replaced with empty string.")
             input_text = ""
 
