@@ -59,14 +59,14 @@ async def process_single_conversation(
         except Exception as e:
             dbg("llm.provider.error", conv_id=conv_id, err=str(e))
 
-        # 入力のプレビュー
-        dbg("llm.input", conv_id=conv_id, preview=preview(user_input))
+        # 入力のプレビュー（ASR後のテキストを使う）
+        dbg("llm.input", conv_id=conv_id, preview=preview(input_text))
 
         # ③ 実行タイミングを計測
         t0 = time.perf_counter()
-        # BatchInputの生成（既存のuser_input, imagesを利用）
+        # BatchInputの生成（ASR後のテキストを使う）
         batch_input = create_batch_input(
-            user_input,
+            input_text,
             images,
             context.character_config.human_name
         )
