@@ -298,7 +298,6 @@ class WebSocketServer:
 
         bg_dir = os.path.join(base_dir, backgrounds_path)
         avatars_dir = os.path.join(base_dir, avatars_path)
-        assets_dir = os.path.join(base_dir, assets_path)
         self.app.mount(
             "/bg",
             StaticFiles(directory=bg_dir),
