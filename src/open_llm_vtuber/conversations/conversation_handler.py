@@ -50,6 +50,7 @@ async def handle_conversation_trigger(
             user_input = data.get("text","")
         else:  # mic-audio-end
             user_input = received_data_buffers[client_uid]
+            info("input.mic_audio_end", client_uid=client_uid, preview=preview(user_input))
             received_data_buffers[client_uid] = np.array([])
 
         # ★ 前処理フック（あなたが実装済み）
