@@ -140,6 +140,11 @@ async def process_single_conversation(
                 name=context.character_config.human_name,
             )
 
+        # User inputログ直前にも配列文字列混入ガード
+        import re
+        if isinstance(input_text, str) and re.search(r"\[.*?[-+]?\d+\.\d+.*?\]", input_text, re.DOTALL):
+            logger.info("[GUARD] User input: input_text looked like array, replaced with empty string.")
+            input_text = ""
         logger.info(f"User input: {input_text}")  # 必ずASR後テキストのみをログ出力
         if images:
             logger.info(f"With {len(images)} images")
