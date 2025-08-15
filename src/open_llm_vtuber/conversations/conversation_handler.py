@@ -55,6 +55,14 @@ async def handle_conversation_trigger(
             dbg("[DEBUG] mic-audio-end user_input type(after): {} value: {}".format(type(user_input), repr(user_input)))
             received_data_buffers[client_uid] = np.array([])
 
+        # user_input取得直後に配列部分除去ガード
+        import re
+        if isinstance(user_input, str):
+            cleaned = re.sub(r"\[.*?[-+]?\d+\.\d+.*?\]", "", user_input, flags=re.DOTALL)
+            if cleaned != user_input:
+                dbg("[GUARD] conversation_handler: array-like part removed from user_input", preview=cleaned)
+            user_input = cleaned
+
         # ★ 前処理フック（あなたが実装済み）
         from .prepost_hooks import preprocess_user_text
         try:
