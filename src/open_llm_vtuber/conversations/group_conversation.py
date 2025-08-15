@@ -97,8 +97,8 @@ async def process_group_conversation(
                 name=human_name,
             )
             logger.info(f"[DEBUG] after store_message input_text type: {type(input_text)}, value: {repr(input_text)}")
-        print("=== DEBUG: forループ直後 ===")
 
+    print("=== DEBUG: forループ直後 ===")
     print("=== DEBUG: state.conversation_history直前 ===")
     logger.info(f"[DEBUG] before state.conversation_history input_text type: {type(input_text)}, value: {repr(input_text)}")
     state.conversation_history = [f"{human_name}: {input_text}"]
