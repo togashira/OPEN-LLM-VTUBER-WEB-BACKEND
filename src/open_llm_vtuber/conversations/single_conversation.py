@@ -52,6 +52,10 @@ async def process_single_conversation(
         input_text = await process_user_input(user_input, context.asr_engine, websocket_send)
         if not isinstance(input_text, str):
             input_text = ""
+        # 配列文字列混入ガード
+        if input_text.strip().startswith("[") and input_text.strip().endswith("]"):
+            logger.info("[GUARD] input_text looked like array, replaced with empty string.")
+            input_text = ""
 
         # ② LLM固定/切替（必要なときだけ）
         try:
