@@ -65,10 +65,10 @@ async def process_single_conversation(
         # ③ 実行タイミングを計測
         t0 = time.perf_counter()
         # BatchInputの生成（既存のuser_input, imagesを利用）
-        from src.open_llm_vtuber.agent.input_types import BatchInput
-        batch_input = BatchInput(
-            user_input=user_input,
-            images=images
+        batch_input = create_batch_input(
+            user_input,
+            images,
+            context.character_config.human_name
         )
         ai_text = ""
         try:
