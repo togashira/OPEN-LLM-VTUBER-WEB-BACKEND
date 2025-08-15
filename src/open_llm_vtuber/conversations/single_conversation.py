@@ -46,6 +46,7 @@ async def process_single_conversation(
     import time
     from ..utils.debug_tools import trace, dbg, preview
     conv_id = getattr(context, "conv_id", None)
+    input_text = None  # 先に初期化しておく
     async with trace("single_conversation", conv_id=conv_id, client_uid=client_uid):
         # まずASR/テキスト化
         input_text = await process_user_input(user_input, context.asr_engine, websocket_send)
@@ -123,7 +124,7 @@ async def process_single_conversation(
                 content=input_text,
                 name=context.character_config.human_name,
             )
-        logger.info(f"User input: {input_text}")
+        logger.info(f"User input: {input_text}")  # ASR後テキストのみをログ出力
         if images:
             logger.info(f"With {len(images)} images")
 
