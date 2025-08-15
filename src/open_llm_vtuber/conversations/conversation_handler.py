@@ -70,9 +70,11 @@ async def handle_conversation_trigger(
         from .prepost_hooks import preprocess_user_text
         try:
             user_ctx = getattr(context, "user_context", {}) or {}
+            logger.info(f"[DEBUG] preprocess_user_text BEFORE type: {type(user_input)}, repr: {repr(user_input)}")
             dbg("preprocess.before", conv_id=conv_id,
                 preview=preview(user_input) if isinstance(user_input,str) else "<audio-bytes>")
             user_input = preprocess_user_text(user_input, user_ctx)
+            logger.info(f"[DEBUG] preprocess_user_text AFTER type: {type(user_input)}, repr: {repr(user_input)}")
             dbg("preprocess.after", conv_id=conv_id, preview=preview(user_input))
         except Exception as e:
             dbg("preprocess.skip", conv_id=conv_id, err=str(e))
