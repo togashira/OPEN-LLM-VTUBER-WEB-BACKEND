@@ -50,7 +50,10 @@ async def handle_conversation_trigger(
             user_input = data.get("text","")
         else:  # mic-audio-end
             user_input = received_data_buffers[client_uid]
-            dbg("[DEBUG] mic-audio-end user_input type(before): {} value: {}".format(type(user_input), repr(user_input)))
+            import numpy as np
+            logger.info(f"[DEBUG] mic-audio-end user_input type: {type(user_input)}, repr: {repr(user_input)}")
+            if isinstance(user_input, np.ndarray):
+                logger.info(f"[DEBUG] mic-audio-end user_input.shape: {user_input.shape}, dtype: {user_input.dtype}")
             info("input.mic_audio_end", client_uid=client_uid, preview=preview(user_input) if isinstance(user_input, str) else "<audio-bytes>")
             dbg("[DEBUG] mic-audio-end user_input type(after): {} value: {}".format(type(user_input), repr(user_input)))
             received_data_buffers[client_uid] = np.array([])
