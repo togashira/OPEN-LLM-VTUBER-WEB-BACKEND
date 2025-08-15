@@ -64,7 +64,19 @@ async def process_single_conversation(
 
         # ③ 実行タイミングを計測
         t0 = time.perf_counter()
-        ai_text = await context.agent_engine.run(user_input=user_input, images=images)
+        # BatchInputの生成（既存のuser_input, imagesを利用）
+        from src.open_llm_vtuber.agent.input_types import BatchInput
+        batch_input = BatchInput(
+            user_input=user_input,
+            images=images
+        )
+        ai_text = ""
+        try:
+            async for output in context.agent_engine.chat(batch_input):
+                ai_text += str(output)
+        except Exception as e:
+            dbg("llm.chat.error", conv_id=conv_id, err=str(e))
+            raise
         llm_ms = round((time.perf_counter() - t0) * 1000, 2)
         dbg("llm.output", conv_id=conv_id, ms=llm_ms, preview=preview(ai_text))
 
