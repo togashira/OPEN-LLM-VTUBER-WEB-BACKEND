@@ -139,8 +139,8 @@ async def process_single_conversation(
                 name=context.character_config.human_name,
             )
     logger.info(f"User input: {input_text}")  # 必ずASR後テキストのみをログ出力
-        if images:
-            logger.info(f"With {len(images)} images")
+    if images:
+        logger.info(f"With {len(images)} images")
 
         # Process agent response
         full_response = await process_agent_response(
