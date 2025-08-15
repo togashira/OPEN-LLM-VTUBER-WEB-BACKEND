@@ -50,6 +50,7 @@ async def process_group_conversation(
     tts_managers = {uid: TTSTaskManager() for uid in group_members}
 
     try:
+        print("=== DEBUG: tryブロック突入 ===")
         logger.info(f"Group Conversation Chain {session_emoji} started!")
 
         # Initialize state with group_id
@@ -84,6 +85,7 @@ async def process_group_conversation(
         )
         logger.info(f"[DEBUG] process_group_conversation input_text type: {type(input_text)}, value: {repr(input_text)}")
 
+        print("=== DEBUG: forループ直前 ===")
         for member_uid in group_members:
             member_context = client_contexts[member_uid]
             logger.info(f"[DEBUG] before store_message input_text type: {type(input_text)}, value: {repr(input_text)}")
@@ -95,10 +97,13 @@ async def process_group_conversation(
                 name=human_name,
             )
             logger.info(f"[DEBUG] after store_message input_text type: {type(input_text)}, value: {repr(input_text)}")
+        print("=== DEBUG: forループ直後 ===")
 
+    print("=== DEBUG: state.conversation_history直前 ===")
     logger.info(f"[DEBUG] before state.conversation_history input_text type: {type(input_text)}, value: {repr(input_text)}")
     state.conversation_history = [f"{human_name}: {input_text}"]
     logger.info(f"[DEBUG] after state.conversation_history input_text type: {type(input_text)}, value: {repr(input_text)}")
+    print("=== DEBUG: state.conversation_history直後 ===")
 
         # Main conversation loop
         while state.group_queue:
