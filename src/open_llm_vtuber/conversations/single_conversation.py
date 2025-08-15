@@ -47,6 +47,9 @@ async def process_single_conversation(
     from ..utils.debug_tools import trace, dbg, preview
     conv_id = getattr(context, "conv_id", None)
     async with trace("single_conversation", conv_id=conv_id, client_uid=client_uid):
+        # まずASR/テキスト化
+        input_text = await process_user_input(user_input, context.asr_engine, websocket_send)
+
         # ② LLM固定/切替（必要なときだけ）
         try:
             provider = getattr(context, "forced_llm_provider", None)
