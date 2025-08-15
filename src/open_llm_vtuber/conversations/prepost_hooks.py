@@ -7,6 +7,12 @@ PERSONA_HINTS = [
 ]
 
 def preprocess_user_text(raw, user_ctx: dict | None = None) -> str:
+    # ndarrayが来た場合は空文字で返す（repr混入防止）
+    import numpy as np
+    from loguru import logger
+    if isinstance(raw, np.ndarray):
+        logger.warning("user_input is ndarray in preprocess_user_text, returning empty string")
+        return ""
     # ① 入力にユーザー最新文脈やテスト用ペルソナを合成
     picked = random.choice(PERSONA_HINTS)
     ctx = (user_ctx or {}).get("today_summary", "")
