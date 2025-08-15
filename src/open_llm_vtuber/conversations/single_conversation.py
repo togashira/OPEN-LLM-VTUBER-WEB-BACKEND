@@ -71,13 +71,18 @@ async def process_single_conversation(
         # ③ 実行タイミングを計測
         t0 = time.perf_counter()
         # BatchInputの生成（ASR後のテキストを使う）
+        # input_textの型・値をDEBUG出力
+        logger.debug(f"[DEBUG] input_text type: {type(input_text)}, value: {repr(input_text)}")
         # AIプロンプト用にASR後テキストをpreprocess_user_textでラップ
         prompt_text = preprocess_user_text(input_text)
+        logger.debug(f"[DEBUG] prompt_text type: {type(prompt_text)}, value: {repr(prompt_text)}")
         batch_input = create_batch_input(
             prompt_text,
             images,
             context.character_config.human_name
         )
+        # create_batch_inputの内容をDEBUG出力
+        logger.debug(f"[DEBUG] batch_input.texts: {batch_input.texts}")
         ai_text = ""
         try:
             async for output in context.agent_engine.chat(batch_input):
