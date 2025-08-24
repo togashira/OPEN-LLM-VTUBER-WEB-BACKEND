@@ -68,3 +68,6 @@ mem.json
 conf.yaml.backup
 
 *.exe
+
+#AITUBER Project
+src/open_llm_vtuber/AITuber/
