@@ -162,11 +162,13 @@ class WebSocketServer:
         async def not_found_handler(request: Request, exc):
             print(f"[DEBUG] 404 Not Found: {request.url.path}")
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
+
+
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
-        # ★ここで追加
-    # レートリミットを事実上無効化（max_requestsを大幅に増やす）
-    self.app.add_middleware(UserRateLimitMiddleware, max_requests=1000, period=1)
+        # レートリミットを事実上無効化（max_requestsを大幅に増やす）
+        self.app.add_middleware(UserRateLimitMiddleware, max_requests=1000, period=1)
 
         # Add CORS
         self.app.add_middleware(
