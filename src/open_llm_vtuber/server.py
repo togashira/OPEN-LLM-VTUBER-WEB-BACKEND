@@ -165,7 +165,8 @@ class WebSocketServer:
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
         # ★ここで追加
-        self.app.add_middleware(UserRateLimitMiddleware, max_requests=10, period=1)
+    # レートリミットを事実上無効化（max_requestsを大幅に増やす）
+    self.app.add_middleware(UserRateLimitMiddleware, max_requests=1000, period=1)
 
         # Add CORS
         self.app.add_middleware(
